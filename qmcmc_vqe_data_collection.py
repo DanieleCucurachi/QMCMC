@@ -137,6 +137,6 @@ elif cost_f_choice == 'L':
 # printing plots
 plt.show()
 # saving plots
-png_name = f'./pictures/' + cost_f_choice + '/' + core_str + '.png'
+png_name = f'./simulations_plots/' + cost_f_choice + '/' + core_str + '.png'
 figure.savefig(png_name)
 print('saved plot to png file: ' + png_name + '\n')
