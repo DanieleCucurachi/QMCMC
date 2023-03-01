@@ -3,7 +3,7 @@ import random
 from scipy.linalg import expm
 from scipy.optimize import minimize
 from pandas import DataFrame
-from sklearn.preprocessing import normalize
+# from sklearn.preprocessing import normalize
 import seaborn as sns
 import matplotlib.pyplot as plt
 
