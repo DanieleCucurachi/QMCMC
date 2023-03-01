@@ -65,7 +65,7 @@ print('\nOptimization terminated with:', qmcmc_optimizer.iteration, 'cost functi
 
 # saving the results  # LO PUOI RICRIVERE MEGLIO QUESTO
 if cost_f_choice == 'ACF':
-    core_str = f'qmcmc_{VERSION}' + params_string + 'cost_f_' + cost_f_choice + '_' + f'_discard_{discard}_lag_{lag}_obs_' + observable + '_' + \
+    core_str = f'qmcmc_{VERSION}' + params_string + 'cost_f_' + cost_f_choice + f'_discard_{discard}_lag_{lag}_obs_' + observable + '_' + \
           f'mc_length_{mc_length}_T_{T}_npins_{n_spins}_iter_{qmcmc_optimizer.iteration}_maxiter_{maxiter}_av_' + \
           f'{average_over}_opt_' + optimizer + '_a_' + optimization_approach + '_A_' + ansatz.name + '_mod_' + model_instance.name
 else:
@@ -81,7 +81,7 @@ print('saved data to csv file: ' + csv_name + '\n')
 #
 spectral_gap = numpy.array(qmcmc_optimizer.db['spectral gap'])
 cost_function = numpy.array(qmcmc_optimizer.db['cost f'])
-figure, axis = plt.subplots((2,2))  # , figsize=(12, 11), dpi=700
+figure, axis = plt.subplots(2,2)  # , figsize=(12, 11), dpi=700
 figure.tight_layout(h_pad=6, w_pad=4)  # distances between subplots
 #
 if cost_f_choice == 'ACF':
