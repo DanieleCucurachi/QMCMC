@@ -73,7 +73,7 @@ else:
           f'mc_length_{mc_length}_T_{T}_npins_{n_spins}_iter_{qmcmc_optimizer.iteration}_maxiter_{maxiter}_av_' + \
           f'{average_over}_opt_' + optimizer + '_a_' + optimization_approach + '_A_' + ansatz.name + '_mod_' + model_instance.name
 
-csv_name = './qmcmc_drafts/simulations_results_V4/' + core_str + '.csv'
+csv_name = './simulations_results/' + core_str + '.csv'
 qmcmc_optimizer.db.to_csv(csv_name, encoding='utf-8')
 print('saved data to csv file: ' + csv_name + '\n')
 
@@ -137,6 +137,6 @@ elif cost_f_choice == 'L':
 # printing plots
 plt.show()
 # saving plots
-png_name = f'./qmcmc_drafts/pictures_V4/' + cost_f_choice + '/' + core_str + '.png'
+png_name = f'./pictures/' + cost_f_choice + '/' + core_str + '.png'
 figure.savefig(png_name)
 print('saved plot to png file: ' + png_name + '\n')
