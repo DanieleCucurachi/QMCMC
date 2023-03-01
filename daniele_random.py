@@ -6,6 +6,7 @@ from pandas import DataFrame
 # from sklearn.preprocessing import normalize
 import seaborn as sns
 import matplotlib.pyplot as plt
+import os
 
 '''A = np.random.rand(3, 3)
 B = np.random.rand(3, 3)
@@ -1224,8 +1225,6 @@ print(np.tril(a, -1))
 
 
 
-'''
-
 # # CHE TYPE SONO LE COLONNE DI DATAFRAME
 # # Import pandas package
 # import pandas as pd
@@ -1250,22 +1249,42 @@ print(np.tril(a, -1))
 
 # print(type(df1)
 
+# dataframe
+# sg_df = DataFrame()
+# cf_df = DataFrame()  # index=range(5)
 
-sg_df = DataFrame()
-cf_df = DataFrame()  # index=range(5)
+# print(cf_df)
 
-print(cf_df)
-
-data = {'Name': ['Jai', 'Princi', 'Gaurav', 'Anuj'],
-        'Height': [5.1, 6.2, 5.1, 5.2],
-        'Qualification': ['Msc', 'MA', 'Msc', 'Msc']}
+# data = {'Name': ['Jai', 'Princi', 'Gaurav', 'Anuj'],
+#         'Height': [5.1, 6.2, 5.1, 5.2],
+#         'Qualification': ['Msc', 'MA', 'Msc', 'Msc']}
   
-# Convert the dictionary into DataFrame
-df = DataFrame(data)
-# df_dict = df.to_dict()
+# # Convert the dictionary into DataFrame
+# df = DataFrame(data)
+# # df_dict = df.to_dict()
+
+# for i in range(4):
+#     # cf_df = cf_df.join(df['Name'], rsuffix='_')
+#     cf_df[f'Name_{i}'] = df['Name']
+
+# print(cf_df)
+
+
+
+
+'''
+import pandas
+
+sg_df = DataFrame(columns=['name', 'weight', 'height'])
+
+data = {'name': 'babbabaj',
+        'height': 4,
+        'weight': 3}
+
 
 for i in range(4):
     # cf_df = cf_df.join(df['Name'], rsuffix='_')
-    cf_df[f'Name_{i}'] = df['Name']
+    sg_df = pandas.concat([sg_df, DataFrame([data])], axis=0, ignore_index=True)
 
-print(cf_df)
+
+print(sg_df)
