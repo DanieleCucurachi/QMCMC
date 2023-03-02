@@ -555,8 +555,8 @@ class QMCMC_Optimizer(QMCMC_Runner):
         # saving current optimization step results
         self.db = self.db.append(dictionary, ignore_index=True)  # append is deprecated
         # self.db = pandas.concat([self.db, DataFrame([dictionary])], axis=0, ignore_index=True) 
-        # questo qua sotto dovrebbe essere diverso per la prima riga (quando satmpa i valori da cui parti)
-        print(f"\n----------        optimization step completed, current sgap value: {dictionary['spectral gap']}        ----------\n")
+        # printing update message
+        print(f"\n----------        current sgap value: {dictionary['spectral gap']}        ----------\n")
 
 class IsingModel():  # FIND BETTER SOLUTION (two classes with inheritance 1DIsing and 2DIsing??)
     '''

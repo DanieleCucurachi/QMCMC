@@ -75,7 +75,7 @@ else:
 
 csv_name = './simulations_results/' + core_str + '.csv'
 qmcmc_optimizer.db.to_csv(csv_name, encoding='utf-8')
-print('saved data to csv file: ' + csv_name + '\n')
+print('\nsaved data to csv file: ' + csv_name + '\n')
 
 # plotting the results MAYBE HERE CREATE A CLASS FOR PLOTTING
 #
@@ -139,4 +139,4 @@ plt.show()
 # saving plots
 png_name = f'./simulations_plots/' + cost_f_choice + '/' + core_str + '.png'
 figure.savefig(png_name)
-print('saved plot to png file: ' + png_name + '\n')
+print('\nsaved plot to png file: ' + png_name + '\n')
