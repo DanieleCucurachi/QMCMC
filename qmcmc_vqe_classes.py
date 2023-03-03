@@ -5,6 +5,7 @@ import numpy
 import math  # replace math.exp with numpy.exp, cancella math se puoi, be coherent
 # import mpmath  # for low T ? better solution?
 import random
+import pandas
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -312,7 +313,8 @@ class QMCMC_Optimizer(QMCMC_Runner):
     '''
     '''
     def __init__(self, spin_system, ansatz, mc_length, average_over=1, cost_f_choice='ACF',
-                   optimization_approach='concatenated_mc', check_point=5000, observable='energy', **kwargs):  #### ansatz=QMCMC_Ansatz
+                   optimization_approach='concatenated_mc', check_point=5000, observable='energy',
+                     verbose=True,**kwargs):  #### ansatz=QMCMC_Ansatz
         # here u should usse assert to check everything is alright
         super().__init__(spin_system, ansatz)
         self.mc_length = mc_length
@@ -324,6 +326,7 @@ class QMCMC_Optimizer(QMCMC_Runner):
         self.db = DataFrame(columns=['cost f', 'spectral gap'] + self.ansatz.params_names)  #  add 'epsilon',
         self.full_explored_states = numpy.zeros(shape=2**self.n_spins, dtype=int)
         self.observable = observable
+        self.verbose = verbose
         self.observable_register = None  # non mi piace
         if self.cost_f_choice == 'L':
             self.boltzmann_prob = self.calculate_boltzmann_prob()
@@ -360,7 +363,7 @@ class QMCMC_Optimizer(QMCMC_Runner):
             run_mc(U)
             mc_step += 1
         
-        print(f'\ndiscarded {int(initial_transient)} points\n')
+        print(f'\n\ndiscarded {int(initial_transient)} points\n')
     
     def calculate_boltzmann_prob(self):  # spostare in IsingModel()?
         '''
@@ -519,7 +522,7 @@ class QMCMC_Optimizer(QMCMC_Runner):
 
         # counting function evaluations during SciPy optimization (one evaluation corrispond to running m MC of t steps)
         self.iteration += 1  # dovrei metterlo in get_dict_save e contare gli opt steps invece?
-        if self.iteration % self.check_point == 0:
+        if self.iteration % self.check_point == 0 and self.verbose:
             print('\ncost function evaluated:', self.iteration, 'times\n')
         # returning scalar value for scipy to optimize
         return cost_f_values.mean()
@@ -540,9 +543,10 @@ class QMCMC_Optimizer(QMCMC_Runner):
         '''
         if 'results' in kwargs.keys():
             results = kwargs['results']
-            dictionary = {'cost f': results.fun, 'spectral gap': self.calculate_sgap(results.x)}
+            params = results.x
+            dictionary = {'cost f': results.fun, 'spectral gap': self.calculate_sgap(params)}
             for param_idx in range(len(self.ansatz.params_names)):
-                dictionary[self.ansatz.params_names[param_idx]] = results.x[param_idx]
+                dictionary[self.ansatz.params_names[param_idx]] = params[param_idx]
         elif 'params' in kwargs.keys() and 'cost_f' in kwargs.keys():
             params = kwargs['params']
             dictionary = {'cost f': kwargs['cost_f'], 'spectral gap': self.calculate_sgap(params)}
@@ -553,10 +557,11 @@ class QMCMC_Optimizer(QMCMC_Runner):
             raise ValueError('Provide valid input:\n- result = scipy OptimizeResult object' + \
                                 '\n- params = array like object, cost_f = scalar value')
         # saving current optimization step results
-        self.db = self.db.append(dictionary, ignore_index=True)  # append is deprecated
-        # self.db = pandas.concat([self.db, DataFrame([dictionary])], axis=0, ignore_index=True) 
+        # self.db = self.db.append(dictionary, ignore_index=True)  # append is deprecated
+        self.db = pandas.concat([self.db, DataFrame([dictionary])], axis=0, ignore_index=True) 
         # printing update message
-        print(f"\n----------        current sgap value: {dictionary['spectral gap']}        ----------\n")
+        if self.verbose:
+            print(f"\n----------        current sgap value: {dictionary['spectral gap']}, params values: {params}        ----------\n")
 
 class IsingModel():  # FIND BETTER SOLUTION (two classes with inheritance 1DIsing and 2DIsing??)
     '''

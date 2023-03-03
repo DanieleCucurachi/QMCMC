@@ -32,7 +32,7 @@ optimization_approach = 'same_start_mc'
 #
 qmcmc_optimizer = QMCMC_Optimizer(spin_system, ansatz, mc_length, average_over=average_over,
                    cost_f_choice=cost_f_choice, optimization_approach=optimization_approach,
-                   initial_transient=discard, observable=observable, lag=lag)
+                   verbose=True, initial_transient=discard, observable=observable, lag=lag)
 # defining parameters initial guess (devi fare in modo che si adattia diverso numero di params)
 params_guess = numpy.fromiter(params_dict.values(), dtype=float)  # , dtype=float
 params_string = '_'
@@ -137,6 +137,6 @@ elif cost_f_choice == 'L':
 # printing plots
 plt.show()
 # saving plots
-png_name = f'./simulations_plots/' + cost_f_choice + '/' + core_str + '.png'
+png_name = './simulations_plots/' + cost_f_choice + '/' + core_str + '.png'
 figure.savefig(png_name)
 print('\nsaved plot to png file: ' + png_name + '\n')

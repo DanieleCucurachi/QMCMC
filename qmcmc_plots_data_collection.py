@@ -12,7 +12,7 @@ from qmcmc_vqe_classes import *
 n_spins = 3
 T = 10
 # numpy.random.seed(630201)
-model_instance = IsingModel_2D(n_spins, random=True)
+model_instance = IsingModel_2D(n_spins, random=True, nearest_neigh=False)
 J = model_instance.J
 h = model_instance.h
 #
@@ -88,8 +88,8 @@ else:
           f'{average_over}_opt_' + optimizer + '_a_' + optimization_approach + '_A_' + ansatz.name + '_mod_' + model_instance.name
 # as csv file
 csv_name = 'data_csv_' + core_str + '.csv'
-sg_df.to_csv('SG_' + csv_name, encoding='utf-8')
-cf_df.to_csv('CF_' + csv_name, encoding='utf-8')
+sg_df.to_csv('./simulations_results/SG_' + csv_name, encoding='utf-8')
+cf_df.to_csv('./simulations_results/CF_' + csv_name, encoding='utf-8')
 print('\nsaved data to csv file: ' + csv_name + '\n')
 
 # plotting the results TODO: CLASS FOR PLOTTING
@@ -136,19 +136,20 @@ if cost_f_choice == 'ACF':
         acf = (1 - sg_mean)**lag
         acf_std = lag*(1-sg_mean)**(lag-1) * sg_std  # calculated with error propagation
         axis[2].plot(range(acf.size), acf, marker='o', color='red',
-                          label='$C(t) \sim e^{-\\frac{t}{\\tau}}=\lambda_{_{SLEM}}^t$', linestyle='-', lw=3, markersize=10)
+                          label='$e^{-\\frac{t}{\\tau}}=\lambda_{_{SLEM}}^t$', linestyle='-', lw=3, markersize=10)
         axis[2].fill_between(range(acf.size), acf-acf_std, acf+acf_std, alpha=0.3,
                          edgecolor='blue', facecolor='red', linewidth=1)
         axis[2].grid(linestyle='--')
         axis[2].set_xlabel('Optimization steps', fontsize=20, labelpad=10)
         axis[2].tick_params(labelsize=15, axis='both', which='major', pad=10, width=2, length=10)
-        axis[2].set_ylabel('Autocorrelation Func $C(t)$', fontsize=20, labelpad=10)
+        # here u r taking for granted that energy is the f that decorrelates the slowest, might not be true TODO: specifica questa cosa meglio
+        axis[2].set_ylabel('Autocorrelation Func $C(t) \sim e^{-\\frac{t}{\\tau}}=\lambda_{_{SLEM}}^t$', fontsize=20, labelpad=10)
         axis[2].legend(fontsize=15)
         for ax in ['top','bottom','left','right']:
             axis[2].spines[ax].set_linewidth(2)
         # axis[2].set_title('Autocorrelation Function $C(t) \sim e^{-\\frac{t}{\\tau}}=\lambda^t$')
     #
-elif cost_f_choice == 'L':  # VA CAMBIATO ANCORA TUTTO QUA SOTTO, DEVI COPIARE CIO CHE HAI FATTO PER I PLOT SOPRA
+elif cost_f_choice == 'L':  # TODO: VA CAMBIATO ANCORA TUTTO QUA SOTTO, DEVI COPIARE CIO CHE HAI FATTO PER I PLOT SOPRA
     # spectral gap
     axis[0].errorbar(sg_mean.size, sg_mean, sg_std, marker='o', color='blue',
                       label='$\delta$', linestyle='-')
@@ -181,5 +182,5 @@ elif cost_f_choice == 'L':  # VA CAMBIATO ANCORA TUTTO QUA SOTTO, DEVI COPIARE C
 #
 figure.align_ylabels(axis[:])
 # saving the plot as png file
-png_name = 'plot_' + core_str + '.png'
+png_name = './simulations_plots/' + cost_f_choice + '/' + 'plot_' + core_str + '.png'
 figure.savefig(png_name, bbox_inches='tight')
