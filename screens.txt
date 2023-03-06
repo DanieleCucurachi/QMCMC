@@ -1,0 +1,10 @@
+SCREENS TRACKER
+
+how to run code: /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_plots_data_collection.py
+
+- 1475753.pts-83.spin2  simulation 5 spins 2000 4 1 50k
+- 1477795.pts-106.spin2  simulation 6 spins 3000 4 1 50k
+- 1478711.pts-108.spin2  simualtion 7 spins 3000 4 1 50k
+- 1479752.pts-111.spin2  simulation 8 spins 3000 4 1 50k
+- 1480794.pts-114.spin  simulation 9 spins 3000 5 1 50k
+- 1481142.pts-113.spin2  simulation 10 spins 3000 5 1 50k

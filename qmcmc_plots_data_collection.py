@@ -36,7 +36,7 @@ for simul in tqdm(range(simulations_number)):
     params_bounds = {'gamma': (0.1, 0.25), 'tau': (2, 10)}
     params_dict = {'gamma': numpy.random.uniform(low=params_bounds['gamma'][0], high=params_bounds['gamma'][1], size=None),
                    'tau': numpy.random.uniform(low=params_bounds['tau'][0], high=params_bounds['tau'][1], size=None)}  # RANDOM
-    # maxiter = 200 * len(params_dict.keys())
+    maxiter = 200 * len(params_dict.keys())
     # defining optimizer specs
     cost_f_choice = 'ACF'
     observable = 'energy'
@@ -61,7 +61,7 @@ for simul in tqdm(range(simulations_number)):
     
         args = (qmcmc_optimizer.current_state)
         results = scipy.optimize.minimize(qmcmc_optimizer, x0=params_guess, args=args, 
-                      method=optimizer, bounds=bnds)  # , options = {'maxiter': maxiter}
+                      method=optimizer, bounds=bnds, options = {'maxiter': maxiter})
         params_guess = results.x
         qmcmc_optimizer.get_save_results(results=results)
     # printing current result
@@ -77,7 +77,6 @@ sg_df['std'] = sg_df.std(axis=1)
 cf_df['mean'] = cf_df.mean(axis=1)
 cf_df['std'] = cf_df.std(axis=1)
 # saving the data
-maxiter = 'scipy'
 if cost_f_choice == 'ACF':
     core_str = f'AVRG_qmcmc_{VERSION}' + params_string + 'cost_f_' + cost_f_choice + '_' + f'_discard_{discard}_lag_{lag}_obs_' + observable + '_' + \
           f'mc_length_{mc_length}_T_{T}_npins_{n_spins}_iter_{qmcmc_optimizer.iteration}_maxiter_{maxiter}_av_' + \
@@ -102,8 +101,8 @@ figure.tight_layout(h_pad=2, w_pad=4)  # distances between subplots
 # printin plots
 if cost_f_choice == 'ACF':
     # spectral gap
-    axis[0].plot(range(sg_mean.size), sg_mean, color='blue', label='Optimization with $' + cost_f_choice + '$', linestyle='-', lw=3,
-                  marker='o', markersize=10)
+    axis[0].plot(range(sg_mean.size), sg_mean, color='blue', label='Optimization with $' + cost_f_choice + '$',
+                   linestyle='-', lw=3)  # marker='o', markersize=10
     axis[0].fill_between(range(sg_mean.size), sg_mean-sg_std, sg_mean+sg_std, alpha=0.3,
                          edgecolor='blue', facecolor='blue', linewidth=1)
     axis[0].text(-0.3, + 1.2, '(a)' + f'   $n = {n_spins}$', fontsize = 30, transform=axis[0].transAxes, fontweight='bold')
@@ -113,12 +112,12 @@ if cost_f_choice == 'ACF':
     axis[0].tick_params(labelsize=15, axis='both', which='major', pad=10, width=2, length=10)
     axis[0].legend(fontsize=15)
     # axis[0].set_title('Spectral gap $\delta$')
-    axis[0].set_ylim(0, 1)
+    # axis[0].set_ylim(0, 1)
     for ax in ['top','bottom','left','right']:
         axis[0].spines[ax].set_linewidth(2)
-    # cost function
-    axis[1].plot(range(cf_mean.size), cf_mean, marker='o', color='orange',
-                      label='$ACF$', linestyle='-', lw=3, markersize=10)
+    # cost function  # TODO: normalize cost fucntion such that u can compare with axis
+    axis[1].plot(range(cf_mean.size), cf_mean, color='orange',
+                      label='$ACF$', linestyle='-', lw=3)  # , markersize=10, marker='o'
     axis[1].fill_between(range(cf_mean.size), cf_mean-cf_std, cf_mean+cf_std, alpha=0.3,
                          edgecolor='orange', facecolor='orange', linewidth=1)
     axis[1].grid(linestyle='--')
@@ -135,8 +134,8 @@ if cost_f_choice == 'ACF':
             lag = lag[0]
         acf = (1 - sg_mean)**lag
         acf_std = lag*(1-sg_mean)**(lag-1) * sg_std  # calculated with error propagation
-        axis[2].plot(range(acf.size), acf, marker='o', color='red',
-                          label='$e^{-\\frac{t}{\\tau}}=\lambda_{_{SLEM}}^t$', linestyle='-', lw=3, markersize=10)
+        axis[2].plot(range(acf.size), acf, color='red',
+                          label='$e^{-\\frac{t}{\\tau}}=\lambda_{_{SLEM}}^t$', linestyle='-', lw=3)  # marker='o', markersize=10
         axis[2].fill_between(range(acf.size), acf-acf_std, acf+acf_std, alpha=0.3,
                          edgecolor='blue', facecolor='red', linewidth=1)
         axis[2].grid(linestyle='--')
@@ -150,19 +149,20 @@ if cost_f_choice == 'ACF':
         # axis[2].set_title('Autocorrelation Function $C(t) \sim e^{-\\frac{t}{\\tau}}=\lambda^t$')
     #
 elif cost_f_choice == 'L':  # TODO: VA CAMBIATO ANCORA TUTTO QUA SOTTO, DEVI COPIARE CIO CHE HAI FATTO PER I PLOT SOPRA
+    pass
     # spectral gap
-    axis[0].errorbar(sg_mean.size, sg_mean, sg_std, marker='o', color='blue',
-                      label='$\delta$', linestyle='-')
-    axis[0].grid(linestyle='--')
-    axis[0].set_xlabel('Optimization steps')
-    axis[0].set_title('Spectral gap $\delta$')
-    axis[0].set_ylim(0, 1)
-    # cost function
-    axis[1].errorbar(cf_mean.size, cf_mean, cf_std, marker='o', color='red',
-                      label='Cost f', linestyle='-')
-    axis[1].grid(linestyle='--')
-    axis[1].set_xlabel('Optimization steps')
-    axis[1].set_title('Cost function $' + cost_f_choice + '$')
+    # axis[0].errorbar(sg_mean.size, sg_mean, sg_std, marker='o', color='blue',
+    #                   label='$\delta$', linestyle='-')
+    # axis[0].grid(linestyle='--')
+    # axis[0].set_xlabel('Optimization steps')
+    # axis[0].set_title('Spectral gap $\delta$')
+    # axis[0].set_ylim(0, 1)
+    # # cost function
+    # axis[1].errorbar(cf_mean.size, cf_mean, cf_std, marker='o', color='red',
+    #                   label='Cost f', linestyle='-')
+    # axis[1].grid(linestyle='--')
+    # axis[1].set_xlabel('Optimization steps')
+    # axis[1].set_title('Cost function $' + cost_f_choice + '$')
     #
     # # explored states 
     # exp_states = qmcmc_optimizer.full_explored_states

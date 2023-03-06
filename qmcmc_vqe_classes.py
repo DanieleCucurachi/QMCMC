@@ -363,7 +363,8 @@ class QMCMC_Optimizer(QMCMC_Runner):
             run_mc(U)
             mc_step += 1
         
-        print(f'\n\ndiscarded {int(initial_transient)} points\n')
+        if self.verbose:
+            print(f'\n\ndiscarded {int(initial_transient)} points\n')
     
     def calculate_boltzmann_prob(self):  # spostare in IsingModel()?
         '''
@@ -660,7 +661,7 @@ class IsingModel_1D(IsingModel):
                  ' / ' + str(int(0.5 * self.n_spins * (self.n_spins - 1))))
         print('Non-zero Bias (h) : ' + str(int(numpy.count_nonzero(self._h))) + ' / ' + str(self.n_spins))
         print('------------------------------------------------------------')
-        print('Average Interaction Strength <|J|> : ', round(numpy.sum(numpy.abs(self._J))/numpy.count_nonzero(self._J), 3))
+        print('Average Interaction Strength <|J|>: ', round(numpy.sum(numpy.abs(self._J))/numpy.count_nonzero(self._J), 3))
         print('Average Bias Strength <|h|>: ', round(numpy.mean(numpy.abs(self._h)), 3))
         print('------------------------------------------------------------')
 
