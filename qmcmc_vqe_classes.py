@@ -15,7 +15,8 @@ from pandas import DataFrame
 from scipy.linalg import expm, kron
 from scipy.sparse.linalg import eigs
 
-# potri usare cupy 
+# TODO: check you used copy() when needed to copy array
+# potri usare cupy e ray (nell'audio chris spiega come suare + mail a balasz con esempio) 
 # ho levato al matrice numpy.matrix
 # devia ncora account for low T, il tuo codice si rompe a low T
 # from scipy.sparse import identity, kron, csr...  chris says you don't have sparse matrices so there is no advantage
@@ -315,11 +316,10 @@ class QMCMC_Optimizer(QMCMC_Runner):
     def __init__(self, spin_system, ansatz, mc_length, average_over=1, cost_f_choice='ACF',
                    optimization_approach='concatenated_mc', check_point=5000, observable='energy',
                      verbose=True,**kwargs):  #### ansatz=QMCMC_Ansatz
-        # here u should usse assert to check everything is alright
+        # TODO: here u should usse assert to check everything is alright
         super().__init__(spin_system, ansatz)
         self.mc_length = mc_length
         self.average_over = average_over
-        self.cost_f_choice = cost_f_choice
         self.iteration = 0
         self.check_point = check_point
         self.optimization_approach = optimization_approach
@@ -328,15 +328,22 @@ class QMCMC_Optimizer(QMCMC_Runner):
         self.observable = observable
         self.verbose = verbose
         self.observable_register = None  # non mi piace
+        self.cost_f_choice = cost_f_choice
         if self.cost_f_choice == 'L':
             self.boltzmann_prob = self.calculate_boltzmann_prob()
         elif self.cost_f_choice == 'ACF':
             self.discard_initial_transient(kwargs['initial_transient'] if 'initial_transient' in kwargs.keys() else self.n_spins * 1e3)
             self.lag = kwargs['lag'] if 'lag' in kwargs.keys() else 5
+            # TODO: qui gli dai un array di tre dove hai lag, noise e scale, ... trova soluzione migliore
             if isinstance(self.lag, (list, numpy.ndarray)):
-                self.cost_f_register = numpy.zeros(len(self.lag), dtype=float)
+                self.cost_f_register = numpy.zeros(3, dtype=float)
+                self.current_cost_f_best = numpy.zeros(3, dtype=float)
+                self.past_cost_f_best = numpy.zeros(3, dtype=float)
+                self.acf_noise = self.lag[1]  # TODO: use chris suggestion to calculate, penso sia da calcolare dentro qui non da dare da fuori
+                self.lag_scale = self.lag[2]  # TODO: better values? how do we chose it? puoi calcolare la larghezza della curva partendo da tau estimate as 2^kn
+                self.lags_array = self.generate_lags_array(self.lag[0])
         else:
-            raise ValueError('Provide valid cost funtion (cost_f_choice):\n- "L"\n- "ACF"')
+            raise ValueError('\nProvide valid cost funtion (cost_f_choice):\n- "L"\n- "ACF"\n')
 
     def discard_initial_transient(self, initial_transient):
         '''
@@ -353,7 +360,7 @@ class QMCMC_Optimizer(QMCMC_Runner):
             if A >= random.uniform(0, 1):
                 self.current_state = numpy.zeros(2**self.n_spins, dtype=complex) ## da riscrivere questa, non ha senso cosi, fai tipo una funzione
                 self.current_state[measurement_result] += (1 + 0j)
-
+        #
         mc_step = 0
         while mc_step < initial_transient:
             gamma = numpy.random.uniform(low=0.2, high=0.6, size=None)  # interval used in IBM's paper
@@ -362,7 +369,7 @@ class QMCMC_Optimizer(QMCMC_Runner):
             U = self.ansatz.unitary(params)
             run_mc(U)
             mc_step += 1
-        
+        #
         if self.verbose:
             print(f'\n\ndiscarded {int(initial_transient)} points\n')
     
@@ -419,15 +426,23 @@ class QMCMC_Optimizer(QMCMC_Runner):
         elif self.cost_f_choice == 'ACF':
             observable = self.observable_register
             sample_mean = observable.mean()
+            # fixed lag
             if isinstance(self.lag, int): 
-                # WARNING not compatible with 'random_start_mc', find a solution
+                # TODO: WARNING not compatible with 'random_start_mc', find a solution
                 for i in range(observable.size - self.lag):
                     cost += (observable[i] - sample_mean)*(observable[i+self.lag] - sample_mean)
+                cost /= (observable.size - self.lag)  # TODO: remove?
+            # single lag optimization
             elif isinstance(self.lag, (list, numpy.ndarray)):
-                for lag_idx, lag in enumerate(self.lag):
+                for lag_idx, lag in enumerate(self.lags_array):
                     for i in range(observable.size - lag):
                         self.cost_f_register[lag_idx] += (observable[i] - sample_mean)*(observable[i+lag] - sample_mean)
-                cost = self.cost_f_register[0]
+                    self.cost_f_register[lag_idx] /= (observable.size - lag)  # do not remove
+                cost = self.cost_f_register[1]
+                #
+                if cost < self.current_cost_f_best[1] or not self.current_cost_f_best.any():
+                    self.current_cost_f_best = self.cost_f_register.copy()
+            # ACF integral 
             elif self.lag == 'integral':
                 lag = 1
                 c = 0
@@ -436,11 +451,41 @@ class QMCMC_Optimizer(QMCMC_Runner):
                     c = 0
                     for i in range(observable.size - lag):
                         c += (observable[i] - sample_mean)*(observable[i+lag] - sample_mean)
+                    c /= (observable.size - lag)  # TODO: remove? formally correct but it doesn't add any information
                     lag += 1
-            # AGGIUNGERE CHECK SUL LAG MA FORSE MEGLIO FARLO ALL'INIZIO __init__() con assert
+            # exponential decay fit
+
+            # AGGIUNGERE CHECK SUL LAG MA FORSE MEGLIO FARLO ALL'INIZIO __init__() con assert, così appena crei la classe ti dice
+            # che non va bene
         return cost  # /(obs.size-self.lag)  # u can remove the denominaotr, doeasn't really matter as u r minimizing abs(cost)
         # else:
         #     raise ValueError('Provide valid cost funtion (cost_f_choice):\n- "L"\n- "ACF"')  # this is useless as there is already a check for this
+    
+    def optimize_lag(self):
+        '''
+        '''
+        #
+        if not self.past_cost_f_best.any():
+            pass
+        #
+        else:
+            visibility = numpy.abs(self.past_cost_f_best - self.current_cost_f_best)
+            if visibility[0] - self.acf_noise > visibility[1] and self.lags_array[0] > 1:  # 1 or 0?
+                self.lags_array = self.generate_lags_array(self.lags_array[0])
+            elif visibility[2] - self.acf_noise > visibility[1]:
+                self.lags_array = self.generate_lags_array(self.lags_array[2])
+        # 
+        self.past_cost_f_best = self.current_cost_f_best.copy()
+        # checking how the lag evolves during the optimization
+        if self.verbose:
+            print('current lag: ', self.lags_array[1], '\n')
+        # resetting the cost function register for the next optimization step
+        self.current_cost_f_best = numpy.zeros(3, dtype=float)
+
+    def generate_lags_array(self, lag):
+        '''
+        '''
+        return numpy.array([lag - self.lag_scale, lag, lag + self.lag_scale])
 
     # def random_state(self): # bo, non so se ha senso metterlo qui, forse meglio tenerlo in SpinSystem
     #     '''
@@ -562,7 +607,10 @@ class QMCMC_Optimizer(QMCMC_Runner):
         self.db = pandas.concat([self.db, DataFrame([dictionary])], axis=0, ignore_index=True) 
         # printing update message
         if self.verbose:
-            print(f"\n----------        current sgap value: {dictionary['spectral gap']}, params values: {params}        ----------\n")
+            print(f"\n----------        current sgap value: {round(dictionary['spectral gap'], 3)}, params values: {params}        ----------\n")
+        # TODO: BETTER SOLUTION, DON'T LIKE IT HERE, IT HAS NOTHING TO DO WITH get save results
+        if isinstance(self.lag, (list, numpy.ndarray)):
+            self.optimize_lag()
 
 class IsingModel():  # FIND BETTER SOLUTION (two classes with inheritance 1DIsing and 2DIsing??)
     '''
@@ -654,7 +702,7 @@ class IsingModel_1D(IsingModel):
     def summary(self, plot=True):
         '''
         '''
-        print('============================================================')
+        print('\n\n============================================================')
         print('          MODEL : ' + self.name)
         print('============================================================')
         print('Non-zero Interactions (J) : ' + str(int(numpy.count_nonzero(self._J) /2)) + \
@@ -663,10 +711,11 @@ class IsingModel_1D(IsingModel):
         print('------------------------------------------------------------')
         print('Average Interaction Strength <|J|>: ', round(numpy.sum(numpy.abs(self._J))/numpy.count_nonzero(self._J), 3))
         print('Average Bias Strength <|h|>: ', round(numpy.mean(numpy.abs(self._h)), 3))
-        print('------------------------------------------------------------')
+        print('------------------------------------------------------------\n\n')
 
         if plot:
             plt.figure()  # figsize=(16,10)
+            print('Spins coupling heatmap: \n')
             sns.heatmap(self._J, square=True, annot=False, cbar=True).set(xlabel='Spin index', ylabel='Spin index')
             plt.show()
 

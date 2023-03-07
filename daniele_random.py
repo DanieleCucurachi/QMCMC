@@ -1269,10 +1269,7 @@ print(np.tril(a, -1))
 
 # print(cf_df)
 
-
-
-
-'''
+# qualcosa coi dataframe
 import pandas
 
 sg_df = DataFrame(columns=['name', 'weight', 'height'])
@@ -1288,3 +1285,20 @@ for i in range(4):
 
 
 print(sg_df)
+
+# any()
+a = np.zeros(4)
+b = np.array([0,0,3,0])
+print(a.any())
+print(b.any())
+
+'''
+
+# copy arrays
+a = np.array([0,0,3,0])
+b = np.zeros(4)
+print(a)
+b = a
+print(b)
+b -= 1
+print(a)

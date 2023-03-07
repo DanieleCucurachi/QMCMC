@@ -9,7 +9,7 @@ from q_systems import SpinSystem
 from qmcmc_vqe_classes import *
 
 # defining spin system and setting up qmcmc runner (values from IBM paper)
-n_spins = 3
+n_spins = 7
 T = 10
 # numpy.random.seed(630201)
 model_instance = IsingModel_2D(n_spins, random=True)
@@ -19,16 +19,16 @@ h = model_instance.h
 spin_system = SpinSystem(n_spins, T, J, h)  # probabilmente va rimosso
 ansatz = IBM_Ansatz  # do not put () here
 #
-mc_length = 50  # n_spins**2
+mc_length = 3000  # n_spins**2
 discard = n_spins*1e3
-lag = 3
+lag = numpy.array([5, 0, 1])
 average_over = 1
-params_dict = {'gamma': 0.25, 'tau': 5}
+params_dict = {'gamma': 0.18, 'tau': 2}
 maxiter = 200 * len(params_dict.keys())
 #
 cost_f_choice = 'ACF'
 observable = 'energy'
-optimization_approach = 'same_start_mc'
+optimization_approach = 'concatenated_mc'
 #
 qmcmc_optimizer = QMCMC_Optimizer(spin_system, ansatz, mc_length, average_over=average_over,
                    cost_f_choice=cost_f_choice, optimization_approach=optimization_approach,
@@ -43,10 +43,10 @@ cost_f = qmcmc_optimizer(params_guess, qmcmc_optimizer.current_state)
 qmcmc_optimizer.get_save_results(params=params_guess, cost_f=cost_f)
 
 # defining scipy optimizer settings
-bnds = ((0.2, 1), (1, 10))
+bnds = ((0.1, 1), (1, 10))
 optimizer ='Nelder-Mead'
 
-while data_to_collect(qmcmc_optimizer, max_iteration=1e3): 
+while data_to_collect(qmcmc_optimizer, max_iteration=10e3): 
 
     # if qmcmc_optimizer.optimization_approach == 'same_start_mc':  # inutile, se non 'same_start_mc' args non viene usata, rimuovi
     #     args = (qmcmc_optimizer.current_state)
