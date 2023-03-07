@@ -103,10 +103,10 @@ if cost_f_choice == 'ACF':
             lag = lag[0]
         # autocorrelation time
         axis[1][1].plot(range(spectral_gap.size), (1 - spectral_gap)**lag, marker='o', color='orange',
-                          label='$\lambda^t$', linestyle='-')
+                          label='$C(t) \sim e^{-t/\\tau}=\lambda^t$', linestyle='-')
         axis[1][1].grid(linestyle='--')
         axis[1][1].set_xlabel('Optimization steps')
-        axis[1][1].set_title('Autocorrelation Function $C(t) \\approx \lambda^t$')
+        axis[1][1].set_title('ACF $C(t) \sim e^{-t/\\tau}=\lambda^t$')
 elif cost_f_choice == 'L':
     # spectral gap
     axis[0][0].plot(range(spectral_gap.size), spectral_gap, marker='o', color='blue',

@@ -423,10 +423,12 @@ class QMCMC_Optimizer(QMCMC_Runner):
                 # WARNING not compatible with 'random_start_mc', find a solution
                 for i in range(observable.size - self.lag):
                     cost += (observable[i] - sample_mean)*(observable[i+self.lag] - sample_mean)
+                # cost /= (observable.size - lag)
             elif isinstance(self.lag, (list, numpy.ndarray)):
                 for lag_idx, lag in enumerate(self.lag):
                     for i in range(observable.size - lag):
                         self.cost_f_register[lag_idx] += (observable[i] - sample_mean)*(observable[i+lag] - sample_mean)
+                    self.cost_f_register[lag_idx] /= (observable.size - lag)
                 cost = self.cost_f_register[0]
             elif self.lag == 'integral':
                 lag = 1
