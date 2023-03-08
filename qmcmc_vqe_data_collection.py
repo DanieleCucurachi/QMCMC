@@ -112,7 +112,7 @@ if cost_f_choice == 'ACF':
         if isinstance(lag, dict):
             lag = lag['lag']
         # autocorrelation time
-        axis[1][1].plot(range(spectral_gap.size), (1 - spectral_gap)**lag, marker='o', color='green',
+        axis[1][1].plot(range(spectral_gap.size), (1 - spectral_gap)**lag, marker='o', color='orange',
                           label='$C(t) \sim e^{-t/\\tau}=\lambda^t$', linestyle='-')
         axis[1][1].grid(linestyle='--')
         axis[1][1].set_xlabel('Optimization steps')
