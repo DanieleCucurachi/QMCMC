@@ -1,0 +1,5 @@
+__pycache__/
+simulations_plots/
+simulations_results/
+conda_environments/
+daniele_random.py

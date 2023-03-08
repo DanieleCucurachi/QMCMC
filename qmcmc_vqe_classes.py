@@ -1,5 +1,5 @@
 
-VERSION = 'V4.4'
+VERSION = 'V4.5'
 
 import numpy
 import math  # replace math.exp with numpy.exp, cancella math se puoi, be coherent
@@ -15,6 +15,7 @@ from pandas import DataFrame
 from scipy.linalg import expm, kron
 from scipy.sparse.linalg import eigs
 
+# TODO: use numpy empty ro initialize arrays that u will fill up
 # TODO: check you used copy() when needed to copy array
 # potri usare cupy e ray (nell'audio chris spiega come suare + mail a balasz con esempio) 
 # ho levato al matrice numpy.matrix
@@ -26,10 +27,10 @@ from scipy.sparse.linalg import eigs
 # #if self.iteration > 2000:  #QUESTO NON VA BENE COSI DEVI TROVARE SOLUZIONE MIGLIORE https://stackoverflow.com/questions/70724216/how-terminate-the-optimization-in-scipy
         #    break
 
-def data_to_collect(optimizer, max_iteration=15e3, delta_cost=1e5):
+def data_to_collect(optimizer, max_iteration=15e3, delta_cost_f=1e5):
     '''
     '''
-    return optimizer.iteration <= max_iteration #and  >= delta_cost #TODO:complete
+    return optimizer.iteration <= max_iteration #and optimizer.cost_f_fluctations >= delta_cost_f  #TODO:complete
 
 class Ansatz():
     '''
@@ -334,14 +335,14 @@ class QMCMC_Optimizer(QMCMC_Runner):
         elif self.cost_f_choice == 'ACF':
             self.discard_initial_transient(kwargs['initial_transient'] if 'initial_transient' in kwargs.keys() else self.n_spins * 1e3)
             self.lag = kwargs['lag'] if 'lag' in kwargs.keys() else 5
-            # TODO: qui gli dai un array di tre dove hai lag, noise e scale, ... trova soluzione migliore
-            if isinstance(self.lag, (list, numpy.ndarray)):
+            # TODO: qui gli dai un array di tre dove hai lag, noise e scale, ... trova soluzione migliore, magari usa una dictionary per lag
+            if isinstance(self.lag, dict):
                 self.cost_f_register = numpy.zeros(3, dtype=float)
                 self.current_cost_f_best = numpy.zeros(3, dtype=float)
                 self.past_cost_f_best = numpy.zeros(3, dtype=float)
-                self.acf_noise = self.lag[1]  # TODO: use chris suggestion to calculate, penso sia da calcolare dentro qui non da dare da fuori
-                self.lag_scale = self.lag[2]  # TODO: better values? how do we chose it? puoi calcolare la larghezza della curva partendo da tau estimate as 2^kn
-                self.lags_array = self.generate_lags_array(self.lag[0])
+                self.acf_noise = self.lag['acf_noise']  # TODO: use chris suggestion to calculate, penso sia da calcolare dentro qui non da dare da fuori
+                self.lag_scale = self.lag['lag_scale']  # TODO: better values? how do we chose it? puoi calcolare la larghezza della curva partendo da tau estimate as 2^kn
+                self.lags_array = self.generate_lags_array(self.lag['lag'])
         else:
             raise ValueError('\nProvide valid cost funtion (cost_f_choice):\n- "L"\n- "ACF"\n')
 
@@ -384,17 +385,15 @@ class QMCMC_Optimizer(QMCMC_Runner):
         partition_function = sum(boltzmann_exp)
         return numpy.array([i/partition_function for i in boltzmann_exp])
 
-    '''
-    # l'idea qui sarebbe di staccare calculate_sgap in due parti dove la prima calcola P e la seconda calcola sgap
-    # dato P in input --> così da poter usare P anche per calcolare epsilon. Inoltre la parte che calcola P potrebbe
-    # avrebbe come opzione la possibiloità di dare una U in input, così eviti di doverla calcolare più volte
-    # in run_IBM_qmcmc e run_fixed_params_qmcmc
-    def tot_variational_dist(self):    
-        normalization = sum(self.explored_states)  # this could be done smarter: n = t+1 (ma devi prima modificare call() in modo che il primo stato sia incluso in quelli esplorati)
-        mc_pd_approx = numpy.array([i/normalization for i in self.explored_states])
-        distances = numpy.absolute(self.boltzmann_prob - mc_pd_approx)
-        return numpy.amax(distances)
-    '''
+    # # l'idea qui sarebbe di staccare calculate_sgap in due parti dove la prima calcola P e la seconda calcola sgap
+    # # dato P in input --> così da poter usare P anche per calcolare epsilon. Inoltre la parte che calcola P potrebbe
+    # # avrebbe come opzione la possibiloità di dare una U in input, così eviti di doverla calcolare più volte
+    # # in run_IBM_qmcmc e run_fixed_params_qmcmc
+    # def tot_variational_dist(self):    
+    #     normalization = sum(self.explored_states)  # this could be done smarter: n = t+1 (ma devi prima modificare call() in modo che il primo stato sia incluso in quelli esplorati)
+    #     mc_pd_approx = numpy.array([i/normalization for i in self.explored_states])
+    #     distances = numpy.absolute(self.boltzmann_prob - mc_pd_approx)
+    #     return numpy.amax(distances)
 
     def delta(self, i, j, verbose=False):
         '''
@@ -424,6 +423,8 @@ class QMCMC_Optimizer(QMCMC_Runner):
                         x_i_j = numerator/denominator
                         cost -= (1/((1/x_i_j) + x_i_j))
         elif self.cost_f_choice == 'ACF':
+            # TODO: use sum([(observable[i] - sample_mean)*(observable[i+lag] - sample_mean) 
+            # for i in range(observable.size - lag)])
             observable = self.observable_register
             sample_mean = observable.mean()
             # fixed lag
@@ -433,7 +434,7 @@ class QMCMC_Optimizer(QMCMC_Runner):
                     cost += (observable[i] - sample_mean)*(observable[i+self.lag] - sample_mean)
                 cost /= (observable.size - self.lag)  # TODO: remove?
             # single lag optimization
-            elif isinstance(self.lag, (list, numpy.ndarray)):
+            elif isinstance(self.lag, dict):  # TODO: usa un dizionario qui
                 for lag_idx, lag in enumerate(self.lags_array):
                     for i in range(observable.size - lag):
                         self.cost_f_register[lag_idx] += (observable[i] - sample_mean)*(observable[i+lag] - sample_mean)
@@ -451,13 +452,33 @@ class QMCMC_Optimizer(QMCMC_Runner):
                     c = 0
                     for i in range(observable.size - lag):
                         c += (observable[i] - sample_mean)*(observable[i+lag] - sample_mean)
-                    c /= (observable.size - lag)  # TODO: remove? formally correct but it doesn't add any information
+                    c /= (observable.size - lag)  # TODO: remove?
                     lag += 1
+            # TODO: here u can merge these two, the code is identical basically
             # exponential decay fit
+            elif self.lag == 'acf_fit':
+                acf = []
+                lag = 1
+                while lag < observable.size:
+                    c = 0
+                    for i in range(observable.size - lag):
+                        c += (observable[i] - sample_mean)*(observable[i+lag] - sample_mean)
+                    c /= (observable.size - lag)  # TODO: remove? don't think so
+                    if c >= 0:
+                        acf.append(c)
+                    else:
+                        break    
+                    lag += 1
+                # linearizing the system, and fitting a line to the log of the data (https://stackoverflow.com/questions/3938042/fitting-exponential-decay-with-no-initial-guessing)
+                acf = numpy.log(acf)
+                # fitting the linearized data
+                first_order_coeff, _ = numpy.polyfit(range(1, acf.size + 1), acf, 1)
+                # derivating autocorrelation time (tau) to use it as cost function
+                cost = - 1/first_order_coeff  # TODO: non mi piace il fatto che dividi di nuovo perdi info anche qua a gratis
 
             # AGGIUNGERE CHECK SUL LAG MA FORSE MEGLIO FARLO ALL'INIZIO __init__() con assert, così appena crei la classe ti dice
             # che non va bene
-        return cost  # /(obs.size-self.lag)  # u can remove the denominaotr, doeasn't really matter as u r minimizing abs(cost)
+        return cost
         # else:
         #     raise ValueError('Provide valid cost funtion (cost_f_choice):\n- "L"\n- "ACF"')  # this is useless as there is already a check for this
     
@@ -469,17 +490,17 @@ class QMCMC_Optimizer(QMCMC_Runner):
             pass
         #
         else:
-            visibility = numpy.abs(self.past_cost_f_best - self.current_cost_f_best)
-            if visibility[0] - self.acf_noise > visibility[1] and self.lags_array[0] > 1:  # 1 or 0?
+            visibility = numpy.abs(self.past_cost_f_best - self.current_cost_f_best)  # sostituire con numpy.argmax
+            if (visibility[0] - self.acf_noise) > visibility[1] and self.lags_array[0] >= 2:
                 self.lags_array = self.generate_lags_array(self.lags_array[0])
-            elif visibility[2] - self.acf_noise > visibility[1]:
+            elif (visibility[2] - self.acf_noise) > visibility[1]:
                 self.lags_array = self.generate_lags_array(self.lags_array[2])
         # 
         self.past_cost_f_best = self.current_cost_f_best.copy()
         # checking how the lag evolves during the optimization
         if self.verbose:
             print('current lag: ', self.lags_array[1], '\n')
-        # resetting the cost function register for the next optimization step
+        # resetting the current cost function register for the next optimization step
         self.current_cost_f_best = numpy.zeros(3, dtype=float)
 
     def generate_lags_array(self, lag):
@@ -582,7 +603,7 @@ class QMCMC_Optimizer(QMCMC_Runner):
     #     else:
     #         return slem
 
-    def get_save_results(self, **kwargs):  # KEEP INCREASING DF SIZE --> BAD PERFORMACES maybe can find better solution
+    def get_save_results(self, termination_message=False, **kwargs):  # KEEP INCREASING DF SIZE --> BAD PERFORMACES maybe can find better solution
         '''
             results.x: ndarray solution of the optimization
             add 'epsilon': self.epsilon
@@ -593,6 +614,8 @@ class QMCMC_Optimizer(QMCMC_Runner):
             dictionary = {'cost f': results.fun, 'spectral gap': self.calculate_sgap(params)}
             for param_idx in range(len(self.ansatz.params_names)):
                 dictionary[self.ansatz.params_names[param_idx]] = params[param_idx]
+            if termination_message:
+                print('\noptimization terminated because:', results.message, '\n')
         elif 'params' in kwargs.keys() and 'cost_f' in kwargs.keys():
             params = kwargs['params']
             dictionary = {'cost f': kwargs['cost_f'], 'spectral gap': self.calculate_sgap(params)}
@@ -608,9 +631,6 @@ class QMCMC_Optimizer(QMCMC_Runner):
         # printing update message
         if self.verbose:
             print(f"\n----------        current sgap value: {round(dictionary['spectral gap'], 3)}, params values: {params}        ----------\n")
-        # TODO: BETTER SOLUTION, DON'T LIKE IT HERE, IT HAS NOTHING TO DO WITH get save results
-        if isinstance(self.lag, (list, numpy.ndarray)):
-            self.optimize_lag()
 
 class IsingModel():  # FIND BETTER SOLUTION (two classes with inheritance 1DIsing and 2DIsing??)
     '''
@@ -812,61 +832,3 @@ class IsingModel_2D(IsingModel_1D):
             J = J - numpy.diag(numpy.diag(J))
         # return coupling matrix
         return numpy.round(J, decimals=3)
-
-# class WangLandauDOS():
-#     '''
-#     math.e 
-#     '''
-#     def __init__(self, spin_system, alpha, accuracy, check, H_flatness):
-        
-#         self.N = spin_system.n_spins**alpha  # energy spectrum is divided in N discrete values (non voglio che sia esponenziale in n_spins se no questo algoritmo diventa O(2**n) as well)
-#         self.H = numpy.zeros(self.N)
-#         self.S = numpy.zeros(self.N)  # S = log(g(E)) where g(E) is the running estimate of the DOS
-#         self.F = 1  # F = log(f) where f = math.e
-#         self.F_final = accuracy
-#         self.H_flatness = H_flatness  # FORSE CANCELLA
-#         self.system = spin_system
-#         self.check = check
-#         #self.proposal = deepcopy(spin_system)
-#         self.E_max, self.E_min, self.E_step, self.energy_axis = self.find_energy_step()
-#         self.iteration = 0 
-#         self.t = self.iteration/self.N
-#         self.max_iter = 1000  # da cambiare, mettilo come param
-
-#     def find_energy_step(self):
-#         E_min = 0
-#         E_max = 0
-#         for i in range(2**self.system.n_spins):
-#             self.system.decimal = i
-#             E = self.system.energy()
-#             if E < E_min:
-#                 E_min = E 
-#             if E > E_max:
-#                 E_max = E
-#         E_step = (E_max - E_min)/self.N
-#         energy_axis = [E_min + j*E_step for j in range(self.N)]  # mettere degli intervalli di stringhe
-#         return E_max, E_min, E_step, energy_axis
-
-#     def accept_proposal(self, proposal):
-#         '''
-#         '''
-#         self.system.statevector = proposal.statevector
-
-#     def is_flat(self):  # FORSE CANCELLA, e comunque non sono sicuro che si calcoli cosi la flatness
-#        '''
-#        '''
-#        H_max = numpy.amax(self.H)
-#        H_min = numpy.amin(self.H)
-#        delta_H = H_max - H_min
-#        if delta_H/self.H.mean() < self.H_flatness:
-#            return True
-#        else:
-#            return False
-
-#     def select_energy_interval(self, proposed_energy):
-#         '''
-#         '''
-#         index = int((proposed_energy - self.E_min) / self.E_step)
-#         if index == self.N:
-#             index = self.N - 1
-#         return index

@@ -3,7 +3,7 @@ SCREENS TRACKER
 how to run code: /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_plots_data_collection.py
 
 
--   simulation 5 spins 2000 integral div 1 35k
+-   simulation 5 spins 2000 integral div 1 35k and 50k
 -   simulation 6 spins 2000 integral div 1 35k
 -   simulation 5 spins 2000 integral 1 40k
 -   simulation 6 spins 2000 integral 1 35k
@@ -13,3 +13,5 @@ how to run code: /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QM
 - 1475753.pts-83.spin2  simulation 5 spins 2000 4 1 50k
 - 1477795.pts-106.spin2  simulation 6 spins 2000 4 1 50k
 -   simulation 7 spins 3000 5 1 40k
+
+

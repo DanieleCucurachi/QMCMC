@@ -1292,7 +1292,6 @@ b = np.array([0,0,3,0])
 print(a.any())
 print(b.any())
 
-'''
 
 # copy arrays
 a = np.array([0,0,3,0])
@@ -1302,3 +1301,41 @@ b = a
 print(b)
 b -= 1
 print(a)
+
+# append list
+
+a = [1]
+
+a.append(2)
+
+print(a)
+
+
+#numpy log
+
+a = [1,2,3,4]
+
+print(np.log(a))
+
+# while break
+a = 0
+while True:
+   a += 1
+   if a > 1000:
+       break
+print(a)
+
+
+
+# enumerate
+a = ['c', 'a', 'b']
+for i, letter in enumerate(a):
+    print('index:', i, 'letter:', letter)
+
+'''
+
+# printing dictionaries
+
+a = {'gatto': 2, 'cane': 4}
+
+print(f'alla faccia {a} u cazzp')
