@@ -395,7 +395,7 @@ class QMCMC_Optimizer(QMCMC_Runner):
     #     distances = numpy.absolute(self.boltzmann_prob - mc_pd_approx)
     #     return numpy.amax(distances)
 
-    def delta(self, i, j, verbose=False):
+    def delta(self, i, j, verbose=False):  # change verbose name, find better one
         '''
         '''
         spin_state_i = self.config_from_x(i)

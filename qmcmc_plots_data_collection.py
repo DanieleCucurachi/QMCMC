@@ -1,5 +1,5 @@
 
-VERSION = 'V4.4'
+VERSION = 'V4.5'
 
 import numpy
 import scipy
@@ -9,7 +9,7 @@ from q_systems import SpinSystem
 from qmcmc_vqe_classes import *
 
 # defining spin system and setting up qmcmc runner (values from IBM paper)
-n_spins = 3
+n_spins = 5
 T = 10
 # numpy.random.seed(630201)
 model_instance = IsingModel_2D(n_spins, random=True, nearest_neigh=False)
@@ -33,7 +33,7 @@ for simul in tqdm(range(simulations_number)):
     lag = 4
     average_over = 10
     # sampling a random initial value for the params
-    params_bounds = {'gamma': (0.1, 0.25), 'tau': (2, 10)}
+    params_bounds = {'gamma': (0.1, 0.25), 'tau': (1, 10)}
     params_dict = {'gamma': numpy.random.uniform(low=params_bounds['gamma'][0], high=params_bounds['gamma'][1], size=None),
                    'tau': numpy.random.uniform(low=params_bounds['tau'][0], high=params_bounds['tau'][1], size=None)}  # RANDOM
     maxiter = 200 * len(params_dict.keys())
@@ -44,7 +44,7 @@ for simul in tqdm(range(simulations_number)):
     # initializing optimizer class
     qmcmc_optimizer = QMCMC_Optimizer(spin_system, ansatz, mc_length, average_over=average_over,
                        cost_f_choice=cost_f_choice, optimization_approach=optimization_approach,
-                       initial_transient=discard, observable=observable, lag=lag)
+                       verbose=False, initial_transient=discard, observable=observable, lag=lag)
     # defining parameters initial guess (devi fare in modo che si adattia diverso numero di params)
     params_guess = numpy.fromiter(params_dict.values(), dtype=float)  # , dtype=float
     params_string = '_'
@@ -56,16 +56,37 @@ for simul in tqdm(range(simulations_number)):
     # defining scipy optimizer specs
     bnds = ((0.1, 1), (1, 10))
     optimizer ='Nelder-Mead'
+    # initial_simplex = numpy.array([[0.16, 2],
+    #                                [0.5, 2],
+    #                                [0.8, 7]])# array_like of shape (N + 1, N)
+    # fatol =  # The difference of function values at the vertices of the simplex is at most fatol
+    # xatol =  # The size of the simplex is at most xatol
+    
+    # 
+    core_str = f'qmcmc_{VERSION}' + params_string + 'cost_f_' + cost_f_choice + '_' + \
+               f'mc_length_{mc_length}_T_{T}_npins_{n_spins}_maxiter_{maxiter}_av_' + \
+               f'{average_over}_opt_' + optimizer + '_a_' + optimization_approach + '_A_' + \
+               ansatz.name + '_mod_' + model_instance.name
+    if cost_f_choice == 'ACF':
+        if isinstance(lag, dict):
+            lag = lag['lag']
+        core_str += f'_discard_{discard}_lag_{lag}_obs_' + observable
+    #
+    print(f'\nsimulation {simul}: ' + core_str + '\n')
     # running optimization algorithm
-    while data_to_collect(qmcmc_optimizer, max_iteration=35e3): 
+    while data_to_collect(qmcmc_optimizer, max_iteration=40e3): 
     
         args = (qmcmc_optimizer.current_state)
         results = scipy.optimize.minimize(qmcmc_optimizer, x0=params_guess, args=args, 
-                      method=optimizer, bounds=bnds, options = {'maxiter': maxiter})
+                      method=optimizer, bounds=bnds, options = {'maxiter': maxiter, 
+                  'adaptive': True if params_guess.size > 3 else False, 'initial_simplex': None})
         params_guess = results.x
+        #
+        if isinstance(lag, dict):
+            qmcmc_optimizer.optimize_lag()
+        #
         qmcmc_optimizer.get_save_results(results=results)
-    # printing current result
-    print(f'\n\n------------ simulation # {simul + 1} ------------\n')
+
     # 
     # TODO: MA LA EPSILON?
     sg_df[f'spectral gap {simul}'] = qmcmc_optimizer.db['spectral gap']
@@ -76,19 +97,11 @@ sg_df['mean'] = sg_df.mean(axis=1)
 sg_df['std'] = sg_df.std(axis=1)
 cf_df['mean'] = cf_df.mean(axis=1)
 cf_df['std'] = cf_df.std(axis=1)
-# saving the data
-if cost_f_choice == 'ACF':
-    core_str = f'AVRG_qmcmc_{VERSION}' + params_string + 'cost_f_' + cost_f_choice + '_' + f'_discard_{discard}_lag_{lag}_obs_' + observable + '_' + \
-          f'mc_length_{mc_length}_T_{T}_npins_{n_spins}_iter_{qmcmc_optimizer.iteration}_maxiter_{maxiter}_av_' + \
-          f'{average_over}_opt_' + optimizer + '_a_' + optimization_approach + '_A_' + ansatz.name + '_mod_' + model_instance.name
-else:
-    core_str = f'AVRG_qmcmc_{VERSION}' + params_string + 'cost_f_' + cost_f_choice + '_' + \
-          f'mc_length_{mc_length}_T_{T}_npins_{n_spins}_iter_{qmcmc_optimizer.iteration}_maxiter_{maxiter}_av_' + \
-          f'{average_over}_opt_' + optimizer + '_a_' + optimization_approach + '_A_' + ansatz.name + '_mod_' + model_instance.name
-# as csv file
+
+# saving the data as csv file
 csv_name = 'data_csv_' + core_str + '.csv'
-sg_df.to_csv('./simulations_results/SG_' + csv_name, encoding='utf-8')
-cf_df.to_csv('./simulations_results/CF_' + csv_name, encoding='utf-8')
+sg_df.to_csv('./simulations_results/SG_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_', encoding='utf-8')
+cf_df.to_csv('./simulations_results/CF_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_', encoding='utf-8')
 print('\nsaved data to csv file: ' + csv_name + '\n')
 
 # plotting the results TODO: CLASS FOR PLOTTING
@@ -130,8 +143,6 @@ if cost_f_choice == 'ACF':
     # axis[1].set_title('Cost function $' + cost_f_choice + '$')
     # autocorrelation function
     if not isinstance(lag, str):  # in case it's not? what can we plot?
-        if isinstance(lag, numpy.ndarray):
-            lag = lag[0]
         acf = (1 - sg_mean)**lag
         acf_std = lag*(1-sg_mean)**(lag-1) * sg_std  # calculated with error propagation
         axis[2].plot(range(acf.size), acf, color='red',
@@ -182,5 +193,6 @@ elif cost_f_choice == 'L':  # TODO: VA CAMBIATO ANCORA TUTTO QUA SOTTO, DEVI COP
 #
 figure.align_ylabels(axis[:])
 # saving the plot as png file
-png_name = './simulations_plots/' + cost_f_choice + '/' + 'plot_' + core_str + '.png'
+png_name = './simulations_plots/' + cost_f_choice + '/' + 'plot_' + core_str + \
+           f'_iter_{qmcmc_optimizer.iteration}_' + '.png'
 figure.savefig(png_name, bbox_inches='tight')

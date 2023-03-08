@@ -109,8 +109,6 @@ if cost_f_choice == 'ACF':
     axis[1][0].set_xlabel('Optimization steps')
     axis[1][0].set_title('Cost function $' + cost_f_choice + '$')
     if not isinstance(lag, str):  # in case it's not? what can we plot?
-        if isinstance(lag, dict):
-            lag = lag['lag']
         # autocorrelation time
         axis[1][1].plot(range(spectral_gap.size), (1 - spectral_gap)**lag, marker='o', color='orange',
                           label='$C(t) \sim e^{-t/\\tau}=\lambda^t$', linestyle='-')
