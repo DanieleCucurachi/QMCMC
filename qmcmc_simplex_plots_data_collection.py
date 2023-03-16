@@ -8,8 +8,12 @@ import matplotlib.pyplot as plt
 from q_systems import SpinSystem
 from qmcmc_vqe_classes import *
 
+# defining useful functions
+def rand_value(low, high):
+    return numpy.random.uniform(low=low, high=high, size=None)
+
 # defining spin system and setting up qmcmc runner (values from IBM paper)
-n_spins = 6
+n_spins = 5
 T = 10
 # numpy.random.seed(630201)
 model_instance = IsingModel_2D(n_spins, random=True, nearest_neigh=False)
@@ -29,23 +33,23 @@ for simul in tqdm(range(simulations_number)):
     #
     ansatz = IBM_Ansatz  # do not put () here
     #
-    mc_length = 2000  # n_spins**2
+    mc_length = 1000  # n_spins**2
     discard = n_spins*1e3
-    lag = 4  # {'lag': 4, 'acf_noise': 0.25, 'lag_scale': 1}
-    average_over = 1
+    lag = 4
+    average_over = 10
     # sampling a random initial value for the params
     params_bounds = {'gamma': (0.1, 0.25), 'tau': (1, 10)}
-    params_dict = {'gamma': numpy.random.uniform(low=params_bounds['gamma'][0], high=params_bounds['gamma'][1], size=None),
-                   'tau': numpy.random.uniform(low=params_bounds['tau'][0], high=params_bounds['tau'][1], size=None)}  # RANDOM
+    params_dict = {'gamma': rand_value(low=params_bounds['gamma'][0], high=params_bounds['gamma'][1]),
+                   'tau': rand_value(low=params_bounds['tau'][0], high=params_bounds['tau'][1])}
     maxiter = 200 * len(params_dict.keys())
     # defining optimizer specs
     cost_f_choice = 'ACF'
     observable = 'energy'
-    optimization_approach = 'concatenated_mc'
+    optimization_approach = 'same_start_mc'
     # initializing optimizer class
     qmcmc_optimizer = QMCMC_Optimizer(spin_system, ansatz, mc_length, average_over=average_over,
                        cost_f_choice=cost_f_choice, optimization_approach=optimization_approach,
-                       verbose=True, initial_transient=discard, observable=observable, lag=lag)
+                       verbose=False, initial_transient=discard, observable=observable, lag=lag)
     # defining parameters initial guess (devi fare in modo che si adattia diverso numero di params)
     params_guess = numpy.fromiter(params_dict.values(), dtype=float)  # , dtype=float
     params_string = '_'
@@ -55,16 +59,15 @@ for simul in tqdm(range(simulations_number)):
     cost_f = qmcmc_optimizer(params_guess, qmcmc_optimizer.current_state)
     qmcmc_optimizer.get_save_results(params=params_guess, cost_f=cost_f)
     # defining scipy optimizer specs
-    bnds = ((0.1, 1), (1, 10))
     optimizer ='Nelder-Mead'
-    # initial_simplex = numpy.array([[0.16, 2],
-    #                                [0.5, 2],
-    #                                [0.8, 7]])# array_like of shape (N + 1, N)
+    bnds = ((0.1, 1), (1, 10))
+    initial_simplex = numpy.array([[params_guess[0], params_guess[1]],
+                               [rand_value(bnds[0][0], bnds[0][1]), rand_value(bnds[1][0], bnds[1][1])],
+                               [rand_value(bnds[0][0], bnds[0][1]), rand_value(bnds[1][0], bnds[1][1])]])
     # fatol =  # The difference of function values at the vertices of the simplex is at most fatol
     # xatol =  # The size of the simplex is at most xatol
-    
     # 
-    core_str = f'AVG_qmcmc_{VERSION}' + params_string + 'cost_f_' + cost_f_choice + '_' + \
+    core_str = f'SIMP_AVG_qmcmc_{VERSION}' + params_string + 'cost_f_' + cost_f_choice + '_' + \
                f'mc_length_{mc_length}_T_{T}_npins_{n_spins}_maxiter_{maxiter}_av_' + \
                f'{average_over}_opt_' + optimizer + '_a_' + optimization_approach + '_A_' + \
                ansatz.name + '_mod_' + model_instance.name
@@ -79,8 +82,9 @@ for simul in tqdm(range(simulations_number)):
     
         args = (qmcmc_optimizer.current_state)
         results = scipy.optimize.minimize(qmcmc_optimizer, x0=params_guess, args=args, 
-                      method=optimizer, bounds=bnds, options = {'maxiter': maxiter, 
-                  'adaptive': True if params_guess.size > 3 else False, 'initial_simplex': None})
+                  method=optimizer, bounds=bnds, options = {'maxiter': maxiter, 
+                  'adaptive': True if params_guess.size > 3 else False, 'initial_simplex': initial_simplex \
+                  if qmcmc_optimizer.iteration==1 else None})
         params_guess = results.x
         #
         if isinstance(qmcmc_optimizer.lag, dict):
@@ -90,7 +94,6 @@ for simul in tqdm(range(simulations_number)):
 
     # 
     # TODO: MA LA EPSILON?
-
     sg_df[f'spectral gap {simul}'] = qmcmc_optimizer.db['spectral gap']
     cf_df[f'cost f {simul}'] = qmcmc_optimizer.db['cost f']
     #
@@ -119,7 +122,7 @@ if isinstance(lag, str):  # either 'integral', 'acf_fit' or lag optimized
     subplots_n = 2
 else:
     subplots_n = 3
-figure, axis = plt.subplots((subplots_n), figsize=(12, 11), dpi=100)
+figure, axis = plt.subplots((3), figsize=(12, 11), dpi=100)
 figure.tight_layout(h_pad=2, w_pad=4)  # distances between subplots
 # printin plots
 if cost_f_choice == 'ACF':
@@ -144,7 +147,7 @@ if cost_f_choice == 'ACF':
     axis[1].fill_between(range(cf_mean.size), cf_mean-cf_std, cf_mean+cf_std, alpha=0.3,
                          edgecolor='orange', facecolor='orange', linewidth=1)
     axis[1].grid(linestyle='--')
-    if subplots_n == 2:
+    if subplots_n ==2:
         pass
     else:
         axis[1].set_xticklabels([])
@@ -155,7 +158,7 @@ if cost_f_choice == 'ACF':
         axis[1].spines[ax].set_linewidth(2)
     # axis[1].set_title('Cost function $' + cost_f_choice + '$')
     # autocorrelation function
-    if not isinstance(lag, str):  # in case it's not? what can we plot?
+    if not isinstance(lag, str):  # in case it's not? what can we plot? lag gai stato transformato in stringa by now
         acf = (1 - sg_mean)**lag
         acf_std = lag*(1-sg_mean)**(lag-1) * sg_std  # calculated with error propagation
         axis[2].plot(range(acf.size), acf, color='red',

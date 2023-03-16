@@ -1332,10 +1332,27 @@ a = ['c', 'a', 'b']
 for i, letter in enumerate(a):
     print('index:', i, 'letter:', letter)
 
-'''
 
 # printing dictionaries
 
 a = {'gatto': 2, 'cane': 4}
 
 print(f'alla faccia {a} u cazzp')
+
+'''
+
+
+# mean axis
+
+a = np.zeros(shape=(3,3,3))
+for i in range(3):
+    for j in range(3):
+        a[i][j][0] += 1
+        a[i][j][1] += 2
+        a[i][j][2] += 3
+
+b = np.mean(a, axis=2)
+
+print('axis=2:', b)
+print('\n\naxis=1', np.mean(a, axis=1))
+print('\n\naxis=2', np.mean(a, axis=0))

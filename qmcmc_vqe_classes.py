@@ -1,5 +1,5 @@
 
-VERSION = 'V4.5'
+VERSION = 'V4.6'
 
 import numpy
 import math  # replace math.exp with numpy.exp, cancella math se puoi, be coherent
@@ -432,9 +432,9 @@ class QMCMC_Optimizer(QMCMC_Runner):
                 # TODO: WARNING not compatible with 'random_start_mc', find a solution
                 for i in range(observable.size - self.lag):
                     cost += (observable[i] - sample_mean)*(observable[i+self.lag] - sample_mean)
-                cost /= (observable.size - self.lag)  # TODO: remove?
+                # cost /= (observable.size - self.lag)  # TODO: REMOVE
             # single lag optimization
-            elif isinstance(self.lag, dict):  # TODO: usa un dizionario qui
+            elif isinstance(self.lag, dict):
                 for lag_idx, lag in enumerate(self.lags_array):
                     for i in range(observable.size - lag):
                         self.cost_f_register[lag_idx] += (observable[i] - sample_mean)*(observable[i+lag] - sample_mean)
@@ -452,7 +452,7 @@ class QMCMC_Optimizer(QMCMC_Runner):
                     c = 0
                     for i in range(observable.size - lag):
                         c += (observable[i] - sample_mean)*(observable[i+lag] - sample_mean)
-                    c /= (observable.size - lag)  # TODO: remove?
+                    c /= (observable.size - lag)  # do not remove, otherwise you overestimate small lag terms
                     lag += 1
             # TODO: here u can merge these two, the code is identical basically
             # exponential decay fit

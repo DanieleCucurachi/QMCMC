@@ -1,5 +1,5 @@
 
-VERSION = 'V4.5'
+VERSION = 'V4.6'
 
 import numpy
 import scipy
@@ -58,7 +58,7 @@ core_str = f'qmcmc_{VERSION}' + params_string + 'cost_f_' + cost_f_choice + '_' 
            ansatz.name + '_mod_' + model_instance.name
 if cost_f_choice == 'ACF':
     if isinstance(lag, dict):
-        lag = lag['lag']
+        lag = f"optmz_{lag['lag']}_{lag['acf_noise']}_{lag['lag_scale']}"
     core_str += f'_discard_{discard}_lag_{lag}_obs_' + observable
 #
 print('\nsimulation: ' + core_str + '\n')
@@ -75,7 +75,7 @@ while data_to_collect(qmcmc_optimizer, max_iteration=30e3):
     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html to see how to provide args correctly 
     params_guess = results.x
     #
-    if isinstance(lag, dict):
+    if isinstance(qmcmc_optimizer.lag, dict):
         qmcmc_optimizer.optimize_lag()
     #
     qmcmc_optimizer.get_save_results(results=results)
@@ -108,7 +108,7 @@ if cost_f_choice == 'ACF':
     axis[1][0].grid(linestyle='--')
     axis[1][0].set_xlabel('Optimization steps')
     axis[1][0].set_title('Cost function $' + cost_f_choice + '$')
-    if not isinstance(lag, str):  # in case it's not? what can we plot?
+    if not isinstance(lag, str):  # in case it's not? what can we plot? btw, lag is alredy a string
         # autocorrelation time
         axis[1][1].plot(range(spectral_gap.size), (1 - spectral_gap)**lag, marker='o', color='orange',
                           label='$C(t) \sim e^{-t/\\tau}=\lambda^t$', linestyle='-')
