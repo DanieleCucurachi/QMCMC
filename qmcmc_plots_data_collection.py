@@ -37,7 +37,7 @@ for simul in tqdm(range(simulations_number)):
     params_bounds = {'gamma': (0.1, 0.25), 'tau': (1, 10)}
     params_dict = {'gamma': numpy.random.uniform(low=params_bounds['gamma'][0], high=params_bounds['gamma'][1], size=None),
                    'tau': numpy.random.uniform(low=params_bounds['tau'][0], high=params_bounds['tau'][1], size=None)}  # RANDOM
-    maxiter = 200 * len(params_dict.keys())
+    #maxiter = 200 * len(params_dict.keys())
     # defining optimizer specs
     cost_f_choice = 'ACF'
     observable = 'energy'
@@ -64,7 +64,8 @@ for simul in tqdm(range(simulations_number)):
     # xatol =  # The size of the simplex is at most xatol
     
     # 
-    core_str = f'AVG_qmcmc_{VERSION}' + params_string + 'cost_f_' + cost_f_choice + '_' + \
+    maxiter = 'scipy'
+    core_str = f'AVG_{simulations_number}_qmcmc_{VERSION}' + params_string + 'cost_f_' + cost_f_choice + '_' + \
                f'mc_length_{mc_length}_T_{T}_npins_{n_spins}_maxiter_{maxiter}_av_' + \
                f'{average_over}_opt_' + optimizer + '_a_' + optimization_approach + '_A_' + \
                ansatz.name + '_mod_' + model_instance.name
@@ -79,8 +80,8 @@ for simul in tqdm(range(simulations_number)):
     
         args = (qmcmc_optimizer.current_state)
         results = scipy.optimize.minimize(qmcmc_optimizer, x0=params_guess, args=args, 
-                      method=optimizer, bounds=bnds, options = {'maxiter': maxiter, 
-                  'adaptive': True if params_guess.size > 3 else False, 'initial_simplex': None})
+                      method=optimizer, bounds=bnds, options = { 
+                  'adaptive': True if params_guess.size > 3 else False, 'initial_simplex': None}) # 'maxiter': maxiter,
         params_guess = results.x
         #
         if isinstance(qmcmc_optimizer.lag, dict):
@@ -94,6 +95,7 @@ for simul in tqdm(range(simulations_number)):
     sg_df[f'spectral gap {simul}'] = qmcmc_optimizer.db['spectral gap']
     cf_df[f'cost f {simul}'] = qmcmc_optimizer.db['cost f']
     #
+    params_df[f'spectral gap {simul}'] = qmcmc_optimizer.db['spectral gap']
     params_df[f'gamma {simul}'] = qmcmc_optimizer.db['gamma']
     params_df[f'tau {simul}'] = qmcmc_optimizer.db['tau']
   
@@ -108,7 +110,7 @@ csv_name = 'data_csv_' + core_str
 sg_df.to_csv('./simulations_results/SG_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_' + '.csv', encoding='utf-8')
 cf_df.to_csv('./simulations_results/CF_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_' + '.csv', encoding='utf-8')
 params_df.to_csv('./simulations_results/PARAMS_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_' + '.csv', encoding='utf-8')
-print('\nsaved data to csv file: ' + csv_name + '\n')
+print('\nsaved data to csv file: ' + csv_name + f'_iter_{qmcmc_optimizer.iteration}' + '\n')
 
 # plotting the results TODO: CLASS FOR PLOTTING
 sg_mean = numpy.array(sg_df['mean'])

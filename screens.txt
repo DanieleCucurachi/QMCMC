@@ -2,7 +2,7 @@ SCREENS TRACKER
 
 how to run code: /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_plots_data_collection.py
                  /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_vqe_data_collection.py
-
+                 /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_simplex_plots_data_collection.py
 
 --------------
 
@@ -37,25 +37,32 @@ how to run code: /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QM
 -  simulation sim 6 spins 2000 integral 1 50k 
 
 
---- best lag strategy II
+--- best lag strategy II  NO SCIPY MAXITER
 
-- simulation 30 sim 5 spins 2000 4 1 40k 
-- simulation 30 sim 5 spins 2000 integral 1 40k
+- simulation 50 sim 5 spins 2000 4 1 40k 
+- simulation 50 sim 5 spins 2000 integral 1 40k
+- simulation 10 sim 5 spins 3000 4 1 40k 
+- simulation 10 sim 5 spins 3000 integral 1 40k
 
+- simulation 30 sim 6 spins 3000 4 1 40k (max=100) 
 - simulation 30 sim 6 spins 2000 4 1 40k 
 - simulation 30 sim 6 spins 2000 integral 1 40k
-- simulation 10 simplex((0.1, 1), (1, 10)) 6 spins 2000 4 1 40k 
-- simulation 10 simplex((0.1, 1), (1, 10)) 6 spins 2000 integral 1 40k
-- simulation 10 simplex((0.1, 0.8), (1, 10)) 6 spins 2000 4 1 40k 
-- simulation 10 simplex((0.1, 0.8), (1, 10)) 6 spins 2000 integral 1 40k
-
-- simulation 10 sim 7 spins 2000 5 1 50k 
-- simulation 10 sim 7 spins 2000 integral 1 50k
-- simulation 10 sim 7 spins 2000 lag_opt_6_0.1_1 1 50k 
 
 - simulation 10 sim 8 spins 2000 lag_opt_6_0.1_1 1 1 40k 
 - simulation 10 sim 8 spins 2000 integral 1 40k
 - simulation 10 sim 8 spins 2000 5 1 40k
 
-- simulation 10 simplex((0.1, 1), (1, 10)) 10 spins 2000 integral 1 10k
-- simulation 10 simplex((0.1, 1), (1, 10)) 10 spins 2000 lag_opt_6_0.1_1 1 10k
+- simulation 10 simplex((0.1, 1), (1, 10) every point) 6 spins 2000 4 1 20k 
+- simulation 10 simplex((0.1, 1), (1, 10)) 6 spins 2000 integral 1 20k
+- simulation 10 simplex((0.1, 0.8), (1, 10)) 6 spins 2000 4 1 20k 
+- simulation 10 simplex((0.1, 0.8), (1, 10)) 6 spins 2000 integral 1 20k \\\\
+
+- simulation 10 sim 7 spins 2000 5 1 60k 
+- simulation 10 sim 7 spins 2000 integral 1 60k
+- simulation 10 sim 7 spins 2000 lag_opt_6_0.1_1 1 60k 
+
+- simulation 10 simplex((0.1, 1), (1, 10)) 10 spins 2000 integral 1 10k  \\\\
+- simulation 10 simplex((0.1, 1), (1, 10)) 10 spins 2000 lag_opt_6_0.1_1 1 10k  \\\\
+- simulation 10 sim 10 spins 3000 lag_opt_6_0.1_1 1 40k
+
+--- 

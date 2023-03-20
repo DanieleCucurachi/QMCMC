@@ -24,7 +24,7 @@ discard = n_spins*1e3
 lag = 'integral'
 average_over = 1
 params_dict = {'gamma': 0.16, 'tau': 2}
-maxiter = 200 * len(params_dict.keys())
+# maxiter = 200 * len(params_dict.keys())
 #
 cost_f_choice = 'ACF'
 observable = 'energy'
@@ -52,6 +52,7 @@ optimizer ='Nelder-Mead'
 # xatol =  # The size of the simplex is at most xatol
 
 # 
+maxiter = 'scipy'
 core_str = f'qmcmc_{VERSION}' + params_string + 'cost_f_' + cost_f_choice + '_' + \
            f'mc_length_{mc_length}_T_{T}_npins_{n_spins}_maxiter_{maxiter}_av_' + \
            f'{average_over}_opt_' + optimizer + '_a_' + optimization_approach + '_A_' + \
@@ -69,8 +70,8 @@ while data_to_collect(qmcmc_optimizer, max_iteration=30e3):
     args = (qmcmc_optimizer.current_state)
     #
     results = scipy.optimize.minimize(qmcmc_optimizer, x0=params_guess, args=args, 
-                  method=optimizer, bounds=bnds, options = {'maxiter': maxiter, 
-                  'adaptive': True if params_guess.size > 3 else False, 'initial_simplex': None})
+                  method=optimizer, bounds=bnds, options = {
+                  'adaptive': True if params_guess.size > 3 else False, 'initial_simplex': None})  # 'maxiter': maxiter,
     # The tuple passed as args will be passed as *args to the objective function (*args is a tuple, **kwargs is a dictionary)
     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html to see how to provide args correctly 
     params_guess = results.x
