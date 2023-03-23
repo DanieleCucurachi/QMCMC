@@ -1,5 +1,5 @@
 
-VERSION = 'V4.6'
+VERSION = 'V4.7'
 
 import numpy
 import math  # replace math.exp with numpy.exp, cancella math se puoi, be coherent
@@ -52,6 +52,20 @@ class Ansatz():
         '''
         '''
         return [Ansatz.operator(pauli, i, n_spins) for i in range(n_spins)]
+    
+    def random_params(self, **kwargs):
+        '''
+        '''
+        #
+        params = []
+        if 'params_bounds' in kwargs.keys():
+            params_bounds = kwargs['params_bounds']
+        else:
+            params_bounds = self.params_bounds
+        for bounds in params_bounds.values():
+            param_value = numpy.random.uniform(low=bounds[0], high=bounds[1], size=None)
+            params.append(param_value)
+        return numpy.array(params)
 
 # defining classes
 class IBM_Ansatz(Ansatz):
@@ -65,6 +79,7 @@ class IBM_Ansatz(Ansatz):
         self.J = J
         self.h = h 
         self.params_names = ['gamma', 'tau']
+        self.params_bounds = {'gamma': (.0, 1), 'tau': (2, 20)}
         self.alpha = numpy.sqrt(self.n_spins) / numpy.sqrt( sum([self.J[i][j]**2 for i in range(self.n_spins) \
                                 for j in range(i)]) + sum([self.h[j]**2 for j in range(self.n_spins)]) )
 
@@ -130,6 +145,7 @@ class Xmix_Ansatz(Ansatz):  ## modifica qmcmc to account for other ansatz (diffe
     def __init__(self, n_spins, *args):  ## trovare un altro modo per rendere ansatz adattabili (guarda quando definisci l'insatnce in Runner)
         super().__init__(n_spins)
         self.params_names = ['tau']
+        self.params_bounds = {'tau': (2, 20)}
 
     def unitary(self, params):
         '''
@@ -174,14 +190,19 @@ class QMCMC_Runner():
                     energy -= self.J[i][j]*spins_config[i]*spins_config[j]
         return energy
 
-    def delta(self, i, j):
+    def delta(self, i, j, verbose=False):
         '''
         '''
         spin_state_i = self.config_from_x(i)
         spin_state_j = self.config_from_x(j)
         prop_state_en = self.config_energy(spin_state_i)
         curr_state_en = self.config_energy(spin_state_j)
-        return prop_state_en, curr_state_en, numpy.sum(spin_state_i), numpy.sum(spin_state_j)
+        if verbose:
+            return prop_state_en, curr_state_en, numpy.sum(spin_state_i), numpy.sum(spin_state_j)
+        else:
+            return prop_state_en - curr_state_en
+    
+    #TODO: just modified delta, need to rewrite all the methods below
 
     def run_qmcmc_step(self, U):
         '''
@@ -192,7 +213,7 @@ class QMCMC_Runner():
         measurement_result = random.choices(range(prob_vector.size), weights=prob_vector, k=1)[0]
         # accepting or rejecting new state
         current_state_idx = numpy.nonzero(self.current_state)[0][0]
-        prop_state_en, curr_state_en, prop_state_mag, curr_state_mag = self.delta(measurement_result, current_state_idx)  # magari inverti in modo da avere lo stesso ordine del paper
+        prop_state_en, curr_state_en, prop_state_mag, curr_state_mag = self.delta(measurement_result, current_state_idx, verbose=True)  # magari inverti in modo da avere lo stesso ordine del paper
         A = min(1, math.exp(-self.beta * (prop_state_en - curr_state_en)))
         if A >= random.uniform(0, 1):
             # updating current mc state
@@ -207,51 +228,68 @@ class QMCMC_Runner():
             self.explored_states[current_state_idx] += 1
             # return observables values
             return curr_state_en, curr_state_mag
+    
+    # def random_params(self, **kwargs):
+    #     '''
+    #     '''
+    #     #
+    #     params = []
+    #     if 'params_bounds' in kwargs.keys():
+    #         params_bounds = kwargs['params_bounds']
+    #     else:
+    #         params_bounds = self.ansatz.params_bounds
+    #     for bounds in params_bounds.values():
+    #         param_value = numpy.random.uniform(low=bounds[0], high=bounds[1], size=None)
+    #         params.append(param_value)
+    #     return numpy.array(params)
 
-    def observables_convergence_check(self, mc_steps, params):  # DA RIVEDERE DOPO che hai cambiato observables
+    def observables_convergence_check(self, mc_steps, en_df, mag_df, idx, **kwargs):  # DA RIVEDERE DOPO che hai cambiato observables
         '''
         '''
+        #
         energy_sum = 0
         magnetization_sum = 0
-        mc_step = 0
+        #
         sample_mean_energy = numpy.zeros(mc_steps, dtype=float)
         sample_mean_magnetization = numpy.zeros(mc_steps, dtype=float)
-        U = self.ansatz.unitary(params)
-        pbar = tqdm(total=mc_steps)
-        while mc_step < mc_steps:  # non stai includendo l'energia dello stato iniziale
+        #
+        for mc_step in range(mc_steps):  # non stai includendo l'energia dello stato iniziale
+            #
+            if 'params_bounds' in kwargs.keys():
+                params = self.ansatz.random_params(params_bounds=kwargs['params_bounds'])
+                U = self.ansatz.unitary(params)
+            elif 'fixed_params' in kwargs.keys():
+                U = self.ansatz.unitary(kwargs['fixed_params'])
+            else:
+                print('\nsampling random parameters using ansatz default bounds\n')
+                params = self.ansatz.random_params()
+                U = self.ansatz.unitary(params)
+            #
             mc_step_energy, mc_step_magnetization = self.run_qmcmc_step(U)
             energy_sum += mc_step_energy
             magnetization_sum += mc_step_magnetization
             sample_mean_energy[mc_step] = energy_sum/(mc_step+1)  # magari con mean() si puo fare meglio
-            sample_mean_magnetization[mc_step] = magnetization_sum/(mc_step+1) 
-            mc_step += 1
-            pbar.update(1)
-        pbar.close()
-        return sample_mean_energy, sample_mean_magnetization
+            sample_mean_magnetization[mc_step] = magnetization_sum/(mc_step+1)
+            #
+            en_df[f'energy {idx}'] = sample_mean_energy.tolist()
+            mag_df[f'energy{idx}'] = sample_mean_magnetization.tolist()
+        return en_df, mag_df
 
-    def run_IBM_qmcmc(self, mc_steps, observables_df, sgap_df, run): # DA RIVEDERE DOPO che hai cambiato observables
+    def run_random_qmcmc(self, mc_steps, sgap_df, params_bounds={'gamma': (0.2, 0.6), 'tau': (2, 20)}): # DA RIVEDERE DOPO che hai cambiato observables
         '''
         '''
         #TODO: can run only IBM ansatz, maybe it should be universal instead (IN REALTA PENSO FUNZIONI ANCHE CON Xmix)
         # DEVI CAMBIARE self.mc_steps in mc_steps
-        energy_register = numpy.zeros(mc_steps, dtype=float)
-        magnetization_register = numpy.zeros(mc_steps, dtype=float)
         sgap_register = numpy.zeros(mc_steps, dtype=float)
+        #
         for step in range(mc_steps):
             # defining random value for the ansatz parameters QUI PUOI METTERLO COME METHOD IN IBM ANSATZ!
-            gamma = numpy.random.uniform(low=0.2, high=0.6, size=None)  # interval used in IBM's paper
-            tau = numpy.random.uniform(low=2, high=20, size=None)  # interval used in IBM's paper
-            params = (gamma, tau)
+            params = self.ansatz.random_params(params_bounds=params_bounds)
             # defining ansatz and calculating respective spectral gap
-            U = self.ansatz.unitary(params)
             sgap_register[step] = self.calculate_sgap(params)
-            # running MC step and saving the partial results
-            energy_register[step], magnetization_register[step] = self.run_qmcmc_step(U)
         # saving the results
-        observables_df[f'energy{run}'] = energy_register.tolist()
-        observables_df[f'magnetization{run}'] = magnetization_register.tolist()
-        sgap_df = sgap_df.append({'spectral gap': sgap_register.mean()})
-        return observables_df, sgap_df
+        sgap_df = sgap_df.append({'sgap mean': sgap_register.mean(), 'sgap std': sgap_register.std()}, ignore_index=True)
+        return sgap_df
         
 
     def run_fixed_params_qmcmc(self, mc_steps, params, observables_df, run, return_sgap=False): # DA RIVEDERE DOPO che hai cambiato observables
@@ -291,25 +329,6 @@ class QMCMC_Runner():
         return eigenvals[-1].real - eigenvals[-2].real
 
     # FORSE UNA FUNZIONE COME get_save_dict() ci potrebbe stare
-    # def get_save_dict(self, **kwargs):  # maybe can find better solution
-    #     '''
-    #         results.x: ndarray solution of the optimization
-    #         add 'epsilon': self.epsilon
-    #     '''
-    #     if 'results' in kwargs.keys():
-    #         results = kwargs['results']
-    #         dictionary = {'cost f': results.fun, 'spectral gap': self.calculate_sgap(results.x)}
-    #         for param_idx in range(len(self.ansatz.params_names)):
-    #             dictionary[self.ansatz.params_names[param_idx]] = results.x[param_idx]
-    #     elif 'params' in kwargs.keys() and 'cost_f' in kwargs.keys():
-    #         params = kwargs['params']
-    #         dictionary = {'cost f': kwargs['cost_f'], 'spectral gap': self.calculate_sgap(params)}
-    #         for param_idx in range(len(self.ansatz.params_names)):
-    #             dictionary[self.ansatz.params_names[param_idx]] = params[param_idx]
-    #     else:
-    #         raise ValueError('Provide valid input:\n- result = scipy OptimizeResult object' + \
-    #                             '\n- params = array like object, cost_f = scalar value')
-    #     self.db = self.db.append(dictionary, ignore_index=True)
 
 class QMCMC_Optimizer(QMCMC_Runner):
     '''

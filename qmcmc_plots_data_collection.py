@@ -1,5 +1,5 @@
 
-VERSION = 'V4.6'
+VERSION = 'V4.7'
 
 import numpy
 import scipy

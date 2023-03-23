@@ -1,5 +1,5 @@
 
-VERSION = 'V4.6'
+VERSION = 'V4.7'
 
 import numpy
 import scipy
@@ -32,7 +32,7 @@ optimization_approach = 'concatenated_mc'
 #
 qmcmc_optimizer = QMCMC_Optimizer(spin_system, ansatz, mc_length, average_over=average_over,
                    cost_f_choice=cost_f_choice, optimization_approach=optimization_approach,
-                   verbose=True, initial_transient=discard, observable=observable, lag=lag)
+                   verbose=False, initial_transient=discard, observable=observable, lag=lag)
 # defining parameters initial guess (devi fare in modo che si adattia diverso numero di params)
 params_guess = numpy.fromiter(params_dict.values(), dtype=float)  # , dtype=float
 params_string = '_'

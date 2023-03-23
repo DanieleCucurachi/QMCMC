@@ -15,92 +15,94 @@ def rand_value(low, high):
 # defining spin system and setting up qmcmc runner (values from IBM paper)
 n_spins = 5
 T = 10
-# numpy.random.seed(630201)
-model_instance = IsingModel_2D(n_spins, random=True, nearest_neigh=False)
-J = model_instance.J
-h = model_instance.h
 #
-spin_system = SpinSystem(n_spins, T, J, h)  # probabilmente va rimosso
 ansatz = IBM_Ansatz  # do not put () here
-
+#
+#
+discard = n_spins*1e3
+lag = 4
+average_over = 10
 # initializing dataframes to save data
 sg_df = DataFrame()
 cf_df = DataFrame()
 params_df = DataFrame()
 # running several simulations over the same model instance
-simulations_number = 10
-for simul in tqdm(range(simulations_number)):
+simulations_number = 5
+instances_number = 5
+mc_length = 2500  # n_spins**2
+#
+for instance in tqdm(range(instances_number)):
     #
-    ansatz = IBM_Ansatz  # do not put () here
+    model_instance = IsingModel_2D(n_spins, random=True, nearest_neigh=False)
+    J = model_instance.J
+    h = model_instance.h
     #
-    mc_length = 1000  # n_spins**2
-    discard = n_spins*1e3
-    lag = 4
-    average_over = 10
-    # sampling a random initial value for the params
-    params_bounds = {'gamma': (0.1, 0.25), 'tau': (1, 10)}
-    params_dict = {'gamma': rand_value(low=params_bounds['gamma'][0], high=params_bounds['gamma'][1]),
-                   'tau': rand_value(low=params_bounds['tau'][0], high=params_bounds['tau'][1])}
-    # maxiter = 200 * len(params_dict.keys())
-    # defining optimizer specs
-    cost_f_choice = 'ACF'
-    observable = 'energy'
-    optimization_approach = 'concatenated_mc'
-    # initializing optimizer class
-    qmcmc_optimizer = QMCMC_Optimizer(spin_system, ansatz, mc_length, average_over=average_over,
-                       cost_f_choice=cost_f_choice, optimization_approach=optimization_approach,
-                       verbose=False, initial_transient=discard, observable=observable, lag=lag)
-    # defining parameters initial guess (devi fare in modo che si adattia diverso numero di params)
-    params_guess = numpy.fromiter(params_dict.values(), dtype=float)  # , dtype=float
-    params_string = '_'
-    for param_name, bounds in params_bounds.items():
-        params_string += param_name + f'_{round(bounds[0], 3)}_{round(bounds[1], 3)}_'
-    # including the initial params values and corresponding spectral gap value
-    cost_f = qmcmc_optimizer(params_guess, qmcmc_optimizer.current_state)
-    qmcmc_optimizer.get_save_results(params=params_guess, cost_f=cost_f)
-    # defining scipy optimizer specs
-    optimizer ='Nelder-Mead'
-    bnds = ((0.1, 1), (1, 10))
-    initial_simplex = numpy.array([[params_guess[0], params_guess[1]],
-                               [rand_value(bnds[0][0], bnds[0][1]), rand_value(bnds[1][0], bnds[1][1])],
-                               [rand_value(bnds[0][0], bnds[0][1]), rand_value(bnds[1][0], bnds[1][1])]])
-    # fatol =  # The difference of function values at the vertices of the simplex is at most fatol
-    # xatol =  # The size of the simplex is at most xatol
-    # 
-    maxiter = 'scipy'
-    core_str = f'SIMP_AVG_{simulations_number}_qmcmc_{VERSION}' + params_string + 'cost_f_' + cost_f_choice + '_' + \
-               f'mc_length_{mc_length}_T_{T}_npins_{n_spins}_maxiter_{maxiter}_av_' + \
-               f'{average_over}_opt_' + optimizer + '_a_' + optimization_approach + '_A_' + \
-               ansatz.name + '_mod_' + model_instance.name
-    if cost_f_choice == 'ACF':
-        if isinstance(lag, dict):
-            lag = f"optmz_{lag['lag']}_{lag['acf_noise']}_{lag['lag_scale']}"
-        core_str += f'_discard_{discard}_lag_{lag}_obs_' + observable
-    #
-    print(f'\nsimulation {simul}: ' + core_str + '\n')
-    # running optimization algorithm
-    while data_to_collect(qmcmc_optimizer, max_iteration=40e3): 
+    spin_system = SpinSystem(n_spins, T, J, h)  # probabilmente va rimosso
+    for simul in range(simulations_number):
+        # sampling a random initial value for the params
+        params_bounds = {'gamma': (0.1, 0.25), 'tau': (1, 10)}
+        params_dict = {'gamma': rand_value(low=params_bounds['gamma'][0], high=params_bounds['gamma'][1]),
+                       'tau': rand_value(low=params_bounds['tau'][0], high=params_bounds['tau'][1])}
+        # maxiter = 200 * len(params_dict.keys())
+        # defining optimizer specs
+        cost_f_choice = 'ACF'
+        observable = 'energy'
+        optimization_approach = 'concatenated_mc'
+        # initializing optimizer class
+        qmcmc_optimizer = QMCMC_Optimizer(spin_system, ansatz, mc_length, average_over=average_over,
+                           cost_f_choice=cost_f_choice, optimization_approach=optimization_approach,
+                           verbose=False, initial_transient=discard, observable=observable, lag=lag)
+        # defining parameters initial guess (devi fare in modo che si adattia diverso numero di params)
+        params_guess = numpy.fromiter(params_dict.values(), dtype=float)  # , dtype=float
+        params_string = '_'
+        for param_name, bounds in params_bounds.items():
+            params_string += param_name + f'_{round(bounds[0], 3)}_{round(bounds[1], 3)}_'
+        # including the initial params values and corresponding spectral gap value
+        cost_f = qmcmc_optimizer(params_guess, qmcmc_optimizer.current_state)
+        qmcmc_optimizer.get_save_results(params=params_guess, cost_f=cost_f)
+        # defining scipy optimizer specs
+        optimizer ='Nelder-Mead'
+        bnds = ((0.1, 1), (1, 10))
+        initial_simplex = numpy.array([[params_guess[0], params_guess[1]],
+                                   [rand_value(bnds[0][0], bnds[0][1]), rand_value(bnds[1][0], bnds[1][1])],
+                                   [rand_value(bnds[0][0], bnds[0][1]), rand_value(bnds[1][0], bnds[1][1])]])
+        # fatol =  # The difference of function values at the vertices of the simplex is at most fatol
+        # xatol =  # The size of the simplex is at most xatol
+        # 
+        maxiter = 'scipy'
+        core_str = f'SIMP_AVG_{simulations_number}_{instances_number}_qmcmc_{VERSION}' + params_string + 'cost_f_' + cost_f_choice + '_' + \
+                   f'mc_length_{mc_length}_T_{T}_npins_{n_spins}_maxiter_{maxiter}_av_' + \
+                   f'{average_over}_opt_' + optimizer + '_a_' + optimization_approach + '_A_' + \
+                   ansatz.name + '_mod_' + model_instance.name
+        if cost_f_choice == 'ACF':
+            if isinstance(lag, dict):
+                lag = f"optmz_{lag['lag']}_{lag['acf_noise']}_{lag['lag_scale']}"
+            core_str += f'_discard_{discard}_lag_{lag}_obs_' + observable
+        #
+        print(f'\nsimulation {simul}: ' + core_str + '\n')
+        # running optimization algorithm
+        while data_to_collect(qmcmc_optimizer, max_iteration=40e3): 
+        
+            args = (qmcmc_optimizer.current_state)
+            results = scipy.optimize.minimize(qmcmc_optimizer, x0=params_guess, args=args, 
+                      method=optimizer, bounds=bnds, options = { 
+                      'adaptive': True if params_guess.size > 3 else False, 'initial_simplex': initial_simplex \
+                      if qmcmc_optimizer.iteration==1 else None}) # 'maxiter': maxiter,
+            params_guess = results.x
+            #
+            if isinstance(qmcmc_optimizer.lag, dict):
+                qmcmc_optimizer.optimize_lag()
+            #
+            qmcmc_optimizer.get_save_results(results=results)
     
-        args = (qmcmc_optimizer.current_state)
-        results = scipy.optimize.minimize(qmcmc_optimizer, x0=params_guess, args=args, 
-                  method=optimizer, bounds=bnds, options = { 
-                  'adaptive': True if params_guess.size > 3 else False, 'initial_simplex': initial_simplex \
-                  if qmcmc_optimizer.iteration==1 else None}) # 'maxiter': maxiter,
-        params_guess = results.x
+        # 
+        # TODO: MA LA EPSILON?
+        sg_df[f'spectral gap {simul}'] = qmcmc_optimizer.db['spectral gap']
+        cf_df[f'cost f {simul}'] = qmcmc_optimizer.db['cost f']
         #
-        if isinstance(qmcmc_optimizer.lag, dict):
-            qmcmc_optimizer.optimize_lag()
-        #
-        qmcmc_optimizer.get_save_results(results=results)
-
-    # 
-    # TODO: MA LA EPSILON?
-    sg_df[f'spectral gap {simul}'] = qmcmc_optimizer.db['spectral gap']
-    cf_df[f'cost f {simul}'] = qmcmc_optimizer.db['cost f']
-    #
-    params_df[f'spectral gap {simul}'] = qmcmc_optimizer.db['spectral gap']
-    params_df[f'gamma {simul}'] = qmcmc_optimizer.db['gamma']
-    params_df[f'tau {simul}'] = qmcmc_optimizer.db['tau']
+        params_df[f'spectral gap {simul}'] = qmcmc_optimizer.db['spectral gap']
+        params_df[f'gamma {simul}'] = qmcmc_optimizer.db['gamma']
+        params_df[f'tau {simul}'] = qmcmc_optimizer.db['tau']
   
 # computing mean and variance over the simulations results
 sg_df['mean'] = sg_df.mean(axis=1)
@@ -110,8 +112,8 @@ cf_df['std'] = cf_df.std(axis=1)
 
 # saving the data as csv file
 csv_name = 'data_csv_' + core_str
-sg_df.to_csv('./simulations_results/SG_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_' + '.csv', encoding='utf-8')
-cf_df.to_csv('./simulations_results/CF_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_' + '.csv', encoding='utf-8')
+sg_df.to_csv('./simulations_results/OPT_SG_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_' + '.csv', encoding='utf-8')
+cf_df.to_csv('./simulations_results/OPT_CF_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_' + '.csv', encoding='utf-8')
 params_df.to_csv('./simulations_results/PARAMS_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_' + '.csv', encoding='utf-8')
 print('\nsaved data to csv file: ' + csv_name + f'_iter_{qmcmc_optimizer.iteration}' + '\n')
 
@@ -211,6 +213,6 @@ elif cost_f_choice == 'L':  # TODO: VA CAMBIATO ANCORA TUTTO QUA SOTTO, DEVI COP
 #
 figure.align_ylabels(axis[:])
 # saving the plot as png file
-png_name = './simulations_plots/' + cost_f_choice + '/' + 'plot_' + core_str + \
+png_name = './simulations_plots/' + cost_f_choice + '/' + 'plot_OPT_' + core_str + \
            f'_iter_{qmcmc_optimizer.iteration}_' + '.png'
 figure.savefig(png_name, bbox_inches='tight')
