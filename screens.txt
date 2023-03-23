@@ -85,8 +85,8 @@ how to run code: /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QM
 
 SIMULATION RESULTS
 
-1) - simulation 5x5 sim 4 spins 2000 4 1 40k 
-   - simulation 5x5 sim 4 spins 2000 integral 1 40k
+1) - simulation 5x5 sim 4 spins 2500 4 1 40k 
+   - simulation 5x5 sim 4 spins 2500 integral 1 40k
    - simulation 5x5 sim 5 spins 2500 4 1 40k 
    - simulation 5x5 sim 5 spins 2500 integral 1 40k
    - simulation 5x5 sim 6 spins 2500 4 1 40k 

@@ -21,7 +21,12 @@ ansatz = IBM_Ansatz  # do not put () here
 #
 discard = n_spins*1e3
 lag = 4
-average_over = 10
+average_over = 1
+# maxiter = 200 * len(params_dict.keys())
+# defining optimizer specs
+cost_f_choice = 'ACF'
+observable = 'energy'
+optimization_approach = 'concatenated_mc'
 # initializing dataframes to save data
 sg_df = DataFrame()
 cf_df = DataFrame()
@@ -45,11 +50,6 @@ for instance in tqdm(range(instances_number)):
         params_bounds = {'gamma': (0.1, 0.3), 'tau': (1, 10)}
         params_dict = {'gamma': rand_value(low=params_bounds['gamma'][0], high=params_bounds['gamma'][1]),
                        'tau': rand_value(low=params_bounds['tau'][0], high=params_bounds['tau'][1])}
-        # maxiter = 200 * len(params_dict.keys())
-        # defining optimizer specs
-        cost_f_choice = 'ACF'
-        observable = 'energy'
-        optimization_approach = 'concatenated_mc'
         # initializing optimizer class
         qmcmc_optimizer = QMCMC_Optimizer(spin_system, ansatz, mc_length, average_over=average_over,
                            cost_f_choice=cost_f_choice, optimization_approach=optimization_approach,
@@ -118,7 +118,7 @@ cf_df['std'] = cf_df.std(axis=1)
 csv_name = 'data_csv_' + core_str
 sg_df.to_csv('./simulations_results/OPT_SG_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_' + '.csv', encoding='utf-8')
 cf_df.to_csv('./simulations_results/OPT_CF_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_' + '.csv', encoding='utf-8')
-params_df.to_csv('./simulations_results/PARAMS_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_' + '.csv', encoding='utf-8')
+params_df.to_csv('./simulations_results/OPT_PARAMS_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_' + '.csv', encoding='utf-8')
 print('\nsaved data to csv file: ' + csv_name + f'_iter_{qmcmc_optimizer.iteration}' + '\n')
 
 # plotting the results TODO: CLASS FOR PLOTTING

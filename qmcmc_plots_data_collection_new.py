@@ -17,13 +17,18 @@ ansatz = IBM_Ansatz  # do not put () here
 discard = n_spins*1e3
 lag = 4  # {'lag': 4, 'acf_noise': 0.25, 'lag_scale': 1}
 average_over = 1
+#maxiter = 200 * len(params_dict.keys())
+# defining optimizer specs
+cost_f_choice = 'ACF'
+observable = 'energy'
+optimization_approach = 'concatenated_mc'
 # initializing dataframes to save data
 sg_df = DataFrame()
 cf_df = DataFrame()
 params_df = DataFrame()
 # running several simulations over the same model instance
-simulations_number = 2
-instances_number = 2
+simulations_number = 5
+instances_number = 5
 mc_length = 2500  # n_spins**2
 #
 for instance in tqdm(range(instances_number)):
@@ -40,11 +45,6 @@ for instance in tqdm(range(instances_number)):
         params_bounds = {'gamma': (0.1, 0.3), 'tau': (1, 10)}
         params_dict = {'gamma': numpy.random.uniform(low=params_bounds['gamma'][0], high=params_bounds['gamma'][1], size=None),
                        'tau': numpy.random.uniform(low=params_bounds['tau'][0], high=params_bounds['tau'][1], size=None)}  # RANDOM
-        #maxiter = 200 * len(params_dict.keys())
-        # defining optimizer specs
-        cost_f_choice = 'ACF'
-        observable = 'energy'
-        optimization_approach = 'concatenated_mc'
         # initializing optimizer class
         qmcmc_optimizer = QMCMC_Optimizer(spin_system, ansatz, mc_length, average_over=average_over,
                            cost_f_choice=cost_f_choice, optimization_approach=optimization_approach,
@@ -65,7 +65,6 @@ for instance in tqdm(range(instances_number)):
         #                                [0.8, 7]])# array_like of shape (N + 1, N)
         # fatol =  # The difference of function values at the vertices of the simplex is at most fatol
         # xatol =  # The size of the simplex is at most xatol
-        
         # 
         maxiter = 'scipy'
         core_str = f'AVG_{simulations_number}_{instances_number}_qmcmc_{VERSION}' + params_string + 'cost_f_' + cost_f_choice + '_' + \
@@ -81,7 +80,7 @@ for instance in tqdm(range(instances_number)):
         #
         print(f'\nsimulation {idx}: ' + core_str + '\n')
         # running optimization algorithm
-        while data_to_collect(qmcmc_optimizer, max_iteration=10e3): 
+        while data_to_collect(qmcmc_optimizer, max_iteration=40e3): 
         
             args = (qmcmc_optimizer.current_state)
             results = scipy.optimize.minimize(qmcmc_optimizer, x0=params_guess, args=args, 
@@ -114,7 +113,7 @@ cf_df['std'] = cf_df.std(axis=1)
 csv_name = 'data_csv_' + core_str
 sg_df.to_csv('./simulations_results/OPT_SG_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_' + '.csv', encoding='utf-8')
 cf_df.to_csv('./simulations_results/OPT_CF_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_' + '.csv', encoding='utf-8')
-params_df.to_csv('./simulations_results/PARAMS_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_' + '.csv', encoding='utf-8')
+params_df.to_csv('./simulations_results/OPT_PARAMS_' + csv_name + f'_iter_{qmcmc_optimizer.iteration}_' + '.csv', encoding='utf-8')
 print('\nsaved data to csv file: ' + csv_name + f'_iter_{qmcmc_optimizer.iteration}' + '\n')
 
 # plotting the results TODO: CLASS FOR PLOTTING
