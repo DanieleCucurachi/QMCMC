@@ -39,8 +39,10 @@ for instance in tqdm(range(instances_number)):
     #
     spin_system = SpinSystem(n_spins, T, J, h)  # probabilmente va rimosso
     for simul in range(simulations_number):
+        #
+        idx = instance*instances_number + simul
         # sampling a random initial value for the params
-        params_bounds = {'gamma': (0.1, 0.25), 'tau': (1, 10)}
+        params_bounds = {'gamma': (0.1, 0.3), 'tau': (1, 10)}
         params_dict = {'gamma': rand_value(low=params_bounds['gamma'][0], high=params_bounds['gamma'][1]),
                        'tau': rand_value(low=params_bounds['tau'][0], high=params_bounds['tau'][1])}
         # maxiter = 200 * len(params_dict.keys())
@@ -76,10 +78,12 @@ for instance in tqdm(range(instances_number)):
                    ansatz.name + '_mod_' + model_instance.name
         if cost_f_choice == 'ACF':
             if isinstance(lag, dict):
-                lag = f"optmz_{lag['lag']}_{lag['acf_noise']}_{lag['lag_scale']}"
-            core_str += f'_discard_{discard}_lag_{lag}_obs_' + observable
+                lag_str = f"optmz_{lag['lag']}_{lag['acf_noise']}_{lag['lag_scale']}"
+            else:
+                lag_str = lag
+            core_str += f'_discard_{discard}_lag_{lag_str}_obs_' + observable
         #
-        print(f'\nsimulation {simul}: ' + core_str + '\n')
+        print(f'\nsimulation {idx}: ' + core_str + '\n')
         # running optimization algorithm
         while data_to_collect(qmcmc_optimizer, max_iteration=40e3): 
         
@@ -97,12 +101,12 @@ for instance in tqdm(range(instances_number)):
     
         # 
         # TODO: MA LA EPSILON?
-        sg_df[f'spectral gap {simul}'] = qmcmc_optimizer.db['spectral gap']
-        cf_df[f'cost f {simul}'] = qmcmc_optimizer.db['cost f']
+        sg_df[f'spectral gap {idx}'] = qmcmc_optimizer.db['spectral gap']
+        cf_df[f'cost f {idx}'] = qmcmc_optimizer.db['cost f']
         #
-        params_df[f'spectral gap {simul}'] = qmcmc_optimizer.db['spectral gap']
-        params_df[f'gamma {simul}'] = qmcmc_optimizer.db['gamma']
-        params_df[f'tau {simul}'] = qmcmc_optimizer.db['tau']
+        params_df[f'spectral gap {idx}'] = qmcmc_optimizer.db['spectral gap']
+        params_df[f'gamma {idx}'] = qmcmc_optimizer.db['gamma']
+        params_df[f'tau {idx}'] = qmcmc_optimizer.db['tau']
   
 # computing mean and variance over the simulations results
 sg_df['mean'] = sg_df.mean(axis=1)

@@ -78,20 +78,29 @@ how to run code: /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QM
 ----------- THESIS PLOTS:
 - maxiter:scipy
 - mc_length:2500
-- (RECORD TIME! and use new versions)
+- (RECORD TIME! and use new versions, le altre non sono aggiornate)
+
+how to run code: /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_plots_data_collection_new.py
+                 /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_simplex_plots_data_collection_new.py
 
 SIMULATION RESULTS
 
-1) - simulation 5x5 sim 4 spins 2500 4 1 40k 
-   - simulation 5x5 sim 4 spins 2500 integral 1 40k
+1) - simulation 5x5 sim 4 spins 2000 4 1 40k 
+   - simulation 5x5 sim 4 spins 2000 integral 1 40k
    - simulation 5x5 sim 5 spins 2500 4 1 40k 
    - simulation 5x5 sim 5 spins 2500 integral 1 40k
    - simulation 5x5 sim 6 spins 2500 4 1 40k 
    - simulation 5x5 sim 6 spins 2500 integral 1 40k
-   - simulation 3x3 sim 7 spins 2500 4 1 40k 
-   - simulation 3x3 sim 7 spins 2500 integral 1 40k
-   - simulation 3x3 sim 7 spins 2500 lag_opt_6_0.1_1 1 40k
-
+   - simulation 3x4 sim 7 spins 2500 5 1 40k 
+   - simulation 3x4 sim 7 spins 2500 integral 1 40k
+   - simulation 3x4 sim 7 spins 2500 lag_opt_5_0.1_1 1 40k
+   -
+   -
+   -
+   -
+   -
+   -
+   ?
    - simulation 5x5 sim 8 spins 2500 5 1 40k 
    - simulation 5x5 sim 8 spins 2500 integral 1 40k
    - simulation 5x5 sim 8 spins 2500 lag_opt_6_0.1_1 1 40k
