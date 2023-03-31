@@ -3,7 +3,7 @@ VERSION = 'V4.8'
 
 import numpy
 import math  # replace math.exp with numpy.exp, cancella math se puoi, be coherent
-# import mpmath  # for low T ? better solution?
+import mpmath  # for low T ? better solution?
 import random
 import pandas
 import seaborn as sns
@@ -214,7 +214,7 @@ class QMCMC_Runner():
         # accepting or rejecting new state
         current_state_idx = numpy.nonzero(self.current_state)[0][0]
         prop_state_en, curr_state_en, prop_state_mag, curr_state_mag = self.delta(measurement_result, current_state_idx, verbose=True)  # magari inverti in modo da avere lo stesso ordine del paper
-        A = min(1, math.exp(-self.beta * (prop_state_en - curr_state_en)))
+        A = min(1, mpmath.exp(-self.beta * (prop_state_en - curr_state_en)))
         if A >= random.uniform(0, 1):
             # updating current mc state
             self.current_state = numpy.zeros(2**self.n_spins, dtype=complex) ## da riscrivere questa, non ha senso cosi, fai tipo una funzione
@@ -320,12 +320,15 @@ class QMCMC_Runner():
         for i in range(2**self.n_spins):
             for j in range(2**self.n_spins):
                 Q_i_j = abs(U[i][j])**2
-                A_i_j = min(1, numpy.exp(-self.beta * self.delta(j, i)))
+                A_i_j = min(1, mpmath.exp(-self.beta * self.delta(j, i)))
                 P[i][j] = A_i_j * Q_i_j
                 if i==j:
                     for k in range(2**self.n_spins):
-                        P[i][j] += (1 - min(1, numpy.exp(-self.beta * self.delta(k, i)))) * abs(U[i][k])**2
-        eigenvals = eigs(P, k=2, which='LM', return_eigenvectors=False)
+                        P[i][j] += (1 - min(1, mpmath.exp(-self.beta * self.delta(k, i)))) * abs(U[i][k])**2
+        if 1/self.beta >= 1: 
+            eigenvals = eigs(P, k=2, which='LM', return_eigenvectors=False)
+        else:
+            eigenvals = eigs(P, k=2, which='LM', return_eigenvectors=False, maxiter=1000)
         return 1 - abs(eigenvals[-2]) # eigenvals[-1].real - abs(eigenvals[-2])
 
     # FORSE UNA FUNZIONE COME get_save_dict() ci potrebbe stare
@@ -376,7 +379,7 @@ class QMCMC_Optimizer(QMCMC_Runner):
             # accepting or rejecting new state
             current_state_idx = numpy.nonzero(self.current_state)[0][0]
             delta = self.delta(measurement_result, current_state_idx)  # magari inverti in modo da avere lo stesso ordine del paper
-            A = min(1, math.exp(-self.beta * delta))
+            A = min(1, mpmath.exp(-self.beta * delta))
             if A >= random.uniform(0, 1):
                 self.current_state = numpy.zeros(2**self.n_spins, dtype=complex) ## da riscrivere questa, non ha senso cosi, fai tipo una funzione
                 self.current_state[measurement_result] += (1 + 0j)
@@ -399,7 +402,7 @@ class QMCMC_Optimizer(QMCMC_Runner):
         # calculating Boltzmann probabilities for each spin configuration
         boltzmann_exp = numpy.zeros(shape=2**self.n_spins)
         for i in range(2**self.n_spins):
-            boltzmann_exp[i] = (numpy.exp(-self.beta * self.config_energy(self.config_from_x(i))))
+            boltzmann_exp[i] = (mpmath.exp(-self.beta * self.config_energy(self.config_from_x(i))))
         # calculating partition function
         partition_function = sum(boltzmann_exp)
         return numpy.array([i/partition_function for i in boltzmann_exp])
@@ -437,7 +440,7 @@ class QMCMC_Optimizer(QMCMC_Runner):
             for i in range(2**self.n_spins): #### metti len(probabilities vector) e devi mettere un versione che sia ggioran di prob vector
                 for j in range(i):
                     if self.explored_states[i]!=0 and self.explored_states[j]!=0 :  # do not count two times the pairs (new method here?)
-                        numerator = math.exp(-self.beta * self.delta(i, j))
+                        numerator = mpmath.exp(-self.beta * self.delta(i, j))
                         denominator = self.explored_states[i]/self.explored_states[j]
                         x_i_j = numerator/denominator
                         cost -= (1/((1/x_i_j) + x_i_j))
@@ -545,7 +548,7 @@ class QMCMC_Optimizer(QMCMC_Runner):
         # accepting or rejecting new state
         current_state_idx = numpy.nonzero(self.current_state)[0][0]
         delta, prop_state_obs, curr_state_obs = self.delta(measurement_result, current_state_idx, verbose=True)  # magari inverti in modo da avere lo stesso ordine del paper
-        A = min(1, math.exp(-self.beta * delta))
+        A = min(1, mpmath.exp(-self.beta * delta))
         if A >= random.uniform(0, 1):
             self.current_state = numpy.zeros(2**self.n_spins, dtype=complex) ## da riscrivere questa, non ha senso cosi, fai tipo una funzione
             self.current_state[measurement_result] += (1 + 0j)

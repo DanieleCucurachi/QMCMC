@@ -50,8 +50,8 @@ mag_df['mean'] = mag_df.mean(axis=1)
 mag_df['std'] = mag_df.std(axis=1)
 # saving the data as csv file
 csv_name = 'data_csv_' + core_str
-en_df.to_csv('./simulations_results/random_params/EN_' + csv_name + '.csv', encoding='utf-8')
-mag_df.to_csv('./simulations_results/random_params/MAG_' + csv_name + '.csv', encoding='utf-8')
+en_df.to_csv('./simulations_results/observables/EN_' + csv_name + '.csv', encoding='utf-8')
+mag_df.to_csv('./simulations_results/observables/MAG_' + csv_name + '.csv', encoding='utf-8')
 print('\nsaved data to csv file: ' + csv_name + '\n')
 
 # plotting the results TODO: CLASS FOR PLOTTING
@@ -106,5 +106,5 @@ figure.align_ylabels(axis)
 # printing plots
 plt.show()
 # saving the plot as png file
-png_name = './simulations_plots/random_params/plot_' + core_str + '.png'
+png_name = './simulations_plots/observables/plot_' + core_str + '.png'
 figure.savefig(png_name, bbox_inches='tight')

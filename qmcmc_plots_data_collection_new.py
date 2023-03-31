@@ -106,8 +106,10 @@ for instance in tqdm(range(instances_number)):
 # computing mean and variance over the simulations results
 sg_df['mean'] = sg_df.mean(axis=1)
 sg_df['std'] = sg_df.std(axis=1)
+# sg_df['var'] = sg_df.var(axis=1)
 cf_df['mean'] = cf_df.mean(axis=1)
 cf_df['std'] = cf_df.std(axis=1)
+# cf_df['var'] = cf_df.var(axis=1)
 
 # saving the data as csv file
 csv_name = 'data_csv_' + core_str

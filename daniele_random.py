@@ -1339,8 +1339,6 @@ a = {'gatto': 2, 'cane': 4}
 
 print(f'alla faccia {a} u cazzp')
 
-'''
-
 
 # mean axis
 
@@ -1356,3 +1354,14 @@ b = np.mean(a, axis=2)
 print('axis=2:', b)
 print('\n\naxis=1', np.mean(a, axis=1))
 print('\n\naxis=2', np.mean(a, axis=0))
+
+'''
+
+
+# fonts
+import matplotlib.font_manager
+
+def make_html(fontname):
+    return "<p>{font}: <span style='font-family:{font}; font-size: 24px;'>{font}</p>".format(font=fontname)
+
+code = "\n".join([make_html(font) for font in sorted(set([f.name for f in matplotlib.font_manager.fontManager.ttflist]))])
