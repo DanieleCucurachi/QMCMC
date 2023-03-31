@@ -78,29 +78,89 @@ how to run code: /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QM
 ----------- THESIS PLOTS:
 - maxiter:scipy
 - mc_length:2500
-- (RECORD TIME! and use new versions, le altre non sono aggiornate)
+- (use new versions, le altre non sono aggiornate)
 
 how to run code: /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_plots_data_collection_new.py
                  /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_simplex_plots_data_collection_new.py
 
+***************************
 SIMULATION RESULTS
 
-1) - simulation 5x5 sim 4 spins 2500 4 1 40k 
-   - simulation 5x5 sim 4 spins 2500 integral 1 40k
-   - simulation 5x5 sim 5 spins 2500 4 1 40k 
-   - simulation 5x5 sim 5 spins 2500 integral 1 40k
-   - simulation 5x5 sim 6 spins 2500 4 1 40k 
-   - simulation 5x5 sim 6 spins 2500 integral 1 40k
-   - simulation 3x4 sim 7 spins 2500 5 1 40k 
-   - simulation 3x4 sim 7 spins 2500 integral 1 40k
-   - simulation 3x4 sim 7 spins 2500 lag_opt_5_0.1_1 1 40k
+1) - no max scipy simulation 50 sim 5 spins 2000 4 1 40k V@
+   - no max scipy simulation 50 sim 5 spins 2000 integral 1 40k V@
+   - simulation 5x5 sim 4 spins 2500 4 1 40k V@
+   - simulation 5x5 sim 4 spins 2500 integral 1 40k V@
+   - simulation 5x5 sim 5 spins 2500 4 1 40k V
+   - simulation 5x5 sim 5 spins 2500 integral 1 40k V
+   - simulation 5x5 sim 6 spins 2500 4 1 40k V
+   - simulation 5x5 sim 6 spins 2500 integral 1 40k  V
+   - simulation 3x4 sim 7 spins 2500 5 1 40k   V
+   - simulation 3x4 sim 7 spins 2500 integral 1 40k  V
+   - simulation 3x4 sim 7 spins 2500 lag_opt_5_0.25_1 1 40k  V
+   - simulation 5x5 simplex 6 spins 2500 integral 1 15k  V@
+   - simulation 5x5 simplex 6 spins 2500 4 1 15k  V@
+   - simulation 3x3 sim 8 spins 2500 lag_opt_6_0.25_1 1 40k  V 
+   - simulation 4x4 simplex 8 spins 2500 integral 1 5k  V
+   - simulation 4x4 simplex 9 spins 2500 integral 1 5k  V
+   -
+   - random n_spins 3 V@, 4 V@, 5 V@,6 V@, 7 V@, 8 
+   - 
    -
    -
-   -
-   -
-   -
-   -
-   ?
+   ???
    - simulation 5x5 sim 8 spins 2500 5 1 40k 
    - simulation 5x5 sim 8 spins 2500 integral 1 40k
-   - simulation 5x5 sim 8 spins 2500 lag_opt_6_0.1_1 1 40k
+   - 
+
+
+
+2) res:200x200, mc_length:long REMOVE NORMALIZATION FOR FIXED t?
+   - specific instance cost_f and sgap to compare: 4 V@ and 8 spins (with heatmap) prova con fixed lag
+   - specific instance cost_f and sgap to compare: 4 V@ and 8 spins (with heatmap) prova con fixed lag no norm
+   - specific instance cost_f and sgap to compare: 4 V@ and 8 spins (with heatmap) prova con integral
+   - Mazzola mean sgap: (spiega le features) for n spins = 6  V@  
+   - magnetisation for n spins = 6 and explain V
+   ???
+   - trace (u can use one of the specific instance, or even ppt)
+
+
+
+3) E M convergence (7 o 8 spins)
+   - E M convergence random 
+   - EM convergence with good fixed values (plottali insieme poi i due plots)
+
+
+
+***************************
+ALTERNATIVE MODELS (dividi random h da random j)
+
+1) 2d nearest neigh
+   - 
+   - sgap and cost f plot 3d for n=6
+
+2) 1D
+   -
+   - sgap and cost plot 3d for n=6
+
+
+
+***************************
+SCALING
+
+1) plot con scaling del spectral gap per best prop strat --> simula sgap mazzola, prendi il val maggiore su media instances
+   - PRIORITA 2D nn random simula da n 3 a fino a dove riesci e fitta (simula parti del params space piu piccole cosi da risparmiare)
+   - 2D neasrest neigh J=1 h=0 da n 3 a fino a dove riesci 
+   - 1D random da n 3 a fino a dove riesci
+   ?
+   - random --> use the random from SIMULATION RESULTS
+
+
+
+***************************
+TEMPERATURE (integral approach migliora la situa?)
+
+1) optimization landscape sia appiattisce
+   -  cost f per n 6 a T=10 ,1 V@,0.1, 0.001
+
+2) evolution with T
+   - sgap for n 6 for T=10 V@, 1 V@, 0.1, 0.001
