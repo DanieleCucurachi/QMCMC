@@ -1,2 +1,11 @@
+__pycache__/
+conda_environments/
+daniele_random.py
+plotter_thesis.py
+screens.txt
+plotter_from_data.ipynb
+final_plots/
+plot_data/
+colab/
 simulations_plots/
 simulations_results/
