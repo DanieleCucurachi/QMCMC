@@ -1,5 +1,5 @@
 
-VERSION = 'V4.4'
+VERSION = 'V4.7'
 
 import numpy
 import cmath
