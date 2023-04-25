@@ -325,10 +325,7 @@ class QMCMC_Runner():
                 if i==j:
                     for k in range(2**self.n_spins):
                         P[i][j] += (1 - min(1, mpmath.exp(-self.beta * self.delta(k, i)))) * abs(U[i][k])**2
-        if 1/self.beta >= 1: 
-            eigenvals = eigs(P, k=2, which='LM', return_eigenvectors=False)
-        else:
-            eigenvals = eigs(P, k=2, which='LM', return_eigenvectors=False, maxiter=1000)
+        eigenvals = eigs(P, k=2, which='LM', return_eigenvectors=False, maxiter=100000, tol=0.0001)
         return 1 - abs(eigenvals[-2]) # eigenvals[-1].real - abs(eigenvals[-2])
 
     # FORSE UNA FUNZIONE COME get_save_dict() ci potrebbe stare

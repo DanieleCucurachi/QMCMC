@@ -275,7 +275,7 @@ class QMCMC_Runner():
             mag_df[f'energy{idx}'] = sample_mean_magnetization.tolist()
         return en_df, mag_df
 
-    def run_random_qmcmc(self, mc_steps, sgap_df, params_bounds={'gamma': (0.2, 0.6), 'tau': (2, 20)}): # DA RIVEDERE DOPO che hai cambiato observables
+    def run_random_qmcmc(self, mc_steps, sgap_array, params_bounds={'gamma': (0.2, 0.6), 'tau': (2, 20)}): # DA RIVEDERE DOPO che hai cambiato observables
         '''
         '''
         #TODO: can run only IBM ansatz, maybe it should be universal instead (IN REALTA PENSO FUNZIONI ANCHE CON Xmix)
@@ -288,8 +288,9 @@ class QMCMC_Runner():
             # defining ansatz and calculating respective spectral gap
             sgap_register[step] = self.calculate_sgap(params)
         # saving the results
-        sgap_df = sgap_df.append({'sgap mean': sgap_register.mean(), 'sgap std': sgap_register.std()}, ignore_index=True)
-        return sgap_df
+        sgap_array = numpy.concatenate((sgap_array, sgap_register))
+        #sgap_df = sgap_df.append({'sgap mean': sgap_register.mean(), 'sgap std': sgap_register.std()}, ignore_index=True)
+        return sgap_array
         
 
     def run_fixed_params_qmcmc(self, mc_steps, params, observables_df, run, return_sgap=False): # DA RIVEDERE DOPO che hai cambiato observables

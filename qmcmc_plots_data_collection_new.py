@@ -9,13 +9,13 @@ from q_systems import SpinSystem
 from qmcmc_vqe_classes import *
 
 # defining spin system and setting up qmcmc runner (values from IBM paper)
-n_spins = 3
-T = 10
+n_spins = 4
+T = 1
 #
 ansatz = IBM_Ansatz  # do not put () here
 #
 discard = n_spins*1e3
-lag = 4  # {'lag': 4, 'acf_noise': 0.25, 'lag_scale': 1}
+lag = 'integral'  # {'lag': 4, 'acf_noise': 0.25, 'lag_scale': 1}
 average_over = 1
 #maxiter = 200 * len(params_dict.keys())
 # defining optimizer specs
@@ -27,9 +27,9 @@ sg_df = DataFrame()
 cf_df = DataFrame()
 params_df = DataFrame()
 # running several simulations over the same model instance
-simulations_number = 5
-instances_number = 5
-mc_length = 2500  # n_spins**2
+simulations_number = 1
+instances_number = 3
+mc_length = 4000  # n_spins**2
 #
 for instance in tqdm(range(instances_number)):
     #
@@ -48,7 +48,7 @@ for instance in tqdm(range(instances_number)):
         # initializing optimizer class
         qmcmc_optimizer = QMCMC_Optimizer(spin_system, ansatz, mc_length, average_over=average_over,
                            cost_f_choice=cost_f_choice, optimization_approach=optimization_approach,
-                           verbose=False, initial_transient=discard, observable=observable, lag=lag)
+                           verbose=True, initial_transient=discard, observable=observable, lag=lag)
         # defining parameters initial guess (devi fare in modo che si adattia diverso numero di params)
         params_guess = numpy.fromiter(params_dict.values(), dtype=float)  # , dtype=float
         params_string = '_'
@@ -80,7 +80,7 @@ for instance in tqdm(range(instances_number)):
         #
         print(f'\nsimulation {idx}: ' + core_str + '\n')
         # running optimization algorithm
-        while data_to_collect(qmcmc_optimizer, max_iteration=40e3): 
+        while data_to_collect(qmcmc_optimizer, max_iteration=60e3): 
         
             args = (qmcmc_optimizer.current_state)
             results = scipy.optimize.minimize(qmcmc_optimizer, x0=params_guess, args=args, 

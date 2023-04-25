@@ -1355,8 +1355,6 @@ print('axis=2:', b)
 print('\n\naxis=1', np.mean(a, axis=1))
 print('\n\naxis=2', np.mean(a, axis=0))
 
-'''
-
 
 # fonts
 import matplotlib.font_manager
@@ -1365,3 +1363,12 @@ def make_html(fontname):
     return "<p>{font}: <span style='font-family:{font}; font-size: 24px;'>{font}</p>".format(font=fontname)
 
 code = "\n".join([make_html(font) for font in sorted(set([f.name for f in matplotlib.font_manager.fontManager.ttflist]))])
+
+
+'''
+
+
+a = np.array([0,1,2,3,4,5,6,7,8,9])
+b = np.array([0,1,2,3,4,5,9])
+
+print(np.concatenate((a,b)))

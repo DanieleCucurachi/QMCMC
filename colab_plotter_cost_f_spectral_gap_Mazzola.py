@@ -65,7 +65,7 @@ for s in tqdm(range(instances_number)):
             # calculating spectral gap
             spectral_gap[j][i][s] = qmcmc_opt.calculate_sgap(params)
     #
-    print('max sgap value:', spectral_gap[numpy.unravel_index(spectral_gap.argmax(), spectral_gap.shape)], '\n')
+    # print('max sgap value:', spectral_gap[numpy.unravel_index(spectral_gap.argmax(), spectral_gap.shape)], '\n')
 #
 X, Y = numpy.meshgrid(gammas, taus)
 
