@@ -1,10 +1,220 @@
 SCREENS TRACKER
 
 how to run code: /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_plots_data_collection.py
+                 /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_vqe_data_collection.py
+                 /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_simplex_plots_data_collection.py
+-- new
+how to run code: /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_plots_data_collection_new.py
+                 /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_simplex_plots_data_collection_new.py
 
-- 1475753.pts-83.spin2  simulation 5 spins 2000 4 1 50k
-- 1477795.pts-106.spin2  simulation 6 spins 3000 4 1 50k
-- 1478711.pts-108.spin2  simualtion 7 spins 3000 4 1 50k
-- 1479752.pts-111.spin2  simulation 8 spins 3000 4 1 50k
-- 1480794.pts-114.spin  simulation 9 spins 3000 5 1 50k
-- 1481142.pts-113.spin2  simulation 10 spins 3000 5 1 50k
+--------------
+5 50sim 2000 40k --> 10 gg
+7 10sim 2000 60k --> 34 gg
+8 10sim 2000 40k --> 30 gg
+
+--------------
+
+-   simulation 5 spins 2000 integral div 1 50k  @
+-   simulation 5 spins 2000 integral div 1 35k  @
+-   simulation 6 spins 2000 integral div 1 35k  @
+-   simulation 5 spins 2000 integral 1 40k  @
+-   simulation 6 spins 2000 integral 1 35k  @
+-   simulation 7 spins 3000 integral div 1 35k
+
+- 1475753.pts-83.spin2  simulation 5 spins 2000 4 1 50k  @
+- 1477795.pts-106.spin2  simulation 6 spins 2000 4 1 50k  @
+-  simulation 7 spins 3000 5 1 40k
+
+
+-------------- VERSION 4.5
+
+
+--- best lag strategy
+
+- 9579.pts-22.spin2 single sim 9 spins 3000 lag_opt 1 30k !!may be wrong (qmcmc_optimizer.lag)
+- 7775.pts-19.spin2 single sim 9 spins 3000 5 1 30k
+-  single sim 9 spins 3000 integral 1 30k
+-  single sim 9 spins 3000 acf_fit 1 30k
+-  single sim 9 spins 3000 lag_opt_6_0.1_1 1 30k  !!may be wrong (qmcmc_optimizer.lag)
+
+-  simulation sim 6 spins 1000 lag_opt 1 40k  @  !!may be wrong (qmcmc_optimizer.lag)
+-  simulation sim 6 spins 1000 5 1 40k
+
+-  simulation sim 6 spins 2000 lag_opt_5 1 50k  !!may be wrong (qmcmc_optimizer.lag)
+-  simulation sim 6 spins 2000 lag_opt_5 1 50k  !!may be wrong (qmcmc_optimizer.lag)
+-  simulation sim 6 spins 2000 integral 1 50k 
+
+
+--- best lag strategy II 
+
+- simulation 50 sim 5 spins 2000 4 1 40k 
+- simulation 50 sim 5 spins 2000 integral 1 40k
+- simulation 10 sim 5 spins 3000 4 1 40k @
+- simulation 10 sim 5 spins 3000 integral 1 40k @
+
+- simulation 30 sim 6 spins 3000 4 1 40k (max=100) @
+- simulation 30 sim 6 spins 2000 4 1 40k @
+- simulation 30 sim 6 spins 2000 integral 1 40k @
+
+- simulation 10 sim 8 spins 2000 lag_opt_6_0.1_1 1 1 40k 
+- simulation 10 sim 8 spins 2000 integral 1 40k
+- simulation 10 sim 8 spins 2000 5 1 40k
+
+- simulation 10 simplex((0.1, 1), (1, 10) every point) 6 spins 2000 4 1 20k 
+- simulation 10 simplex((0.1, 1), (1, 10)) 6 spins 2000 integral 1 20k
+- simulation 10 simplex((0.1, 0.8), (1, 10)) 6 spins 2000 4 1 20k 
+- simulation 10 simplex((0.1, 0.8), (1, 10)) 6 spins 2000 integral 1 20k \\\\
+
+- simulation 10 sim 7 spins 2000 5 1 60k 
+- simulation 10 sim 7 spins 2000 integral 1 60k
+- simulation 10 sim 7 spins 2000 lag_opt_6_0.1_1 1 60k 
+
+- simulation 10 simplex((0.1, 1), (1, 10)) 10 spins 2000 integral 1 10k  \\\\
+- simulation 10 simplex((0.1, 1), (1, 10)) 10 spins 2000 lag_opt_6_0.1_1 1 10k  \\\\
+- simulation 10 sim 10 spins 3000 lag_opt_6_0.1_1 1 40k
+
+
+---------------------------------------------------------------------------
+---------------------------------------------------------------------------
+----------- THESIS PLOTS:
+- maxiter:scipy
+- mc_length:2500
+- (use new versions, le altre non sono aggiornate)
+
+how to run code: /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_plots_data_collection_new.py
+                 /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_simplex_plots_data_collection_new.py
+                 /home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/colab_plotter_cost_f_spectral_gap.py
+
+***************************
+SIMULATION RESULTS
+
+1) - no max scipy simulation 50 sim 5 spins 2000 4 1 40k V@
+   - no max scipy simulation 50 sim 5 spins 2000 integral 1 40k V@
+   - simulation 5x5 sim 4 spins 2500 4 1 40k V@
+   - simulation 5x5 sim 4 spins 2500 integral 1 40k V@
+   - simulation 5x5 sim 5 spins 2500 4 1 40k V
+   - simulation 5x5 sim 5 spins 2500 integral 1 40k V
+   - simulation 5x5 sim 6 spins 2500 4 1 40k V
+   - simulation 5x5 sim 6 spins 2500 integral 1 40k  V
+   - simulation 3x4 sim 7 spins 2500 5 1 40k   V
+   - simulation 3x4 sim 7 spins 2500 integral 1 40k  V
+   - simulation 3x4 sim 7 spins 2500 lag_opt_5_0.25_1 1 40k  V
+   - simulation 5x5 simplex 6 spins 2500 integral 1 15k  V@
+   - simulation 5x5 simplex 6 spins 2500 4 1 15k  V@
+   - simulation 3x3 sim 8 spins 2500 lag_opt_6_0.25_1 1 40k  V 
+   - simulation 4x4 simplex 8 spins 2500 integral 1 4k  V
+   - simulation 3x3 simplex 9 spins 2500 integral 1 4k  V
+   -
+   - random n_spins 3 V@, 4 V@, 5 V@,6 V@, 7 V@, 8 
+   - 
+   -
+   -
+   ???
+   - simulation 5x5 sim 8 spins 2500 5 1 40k 
+   - simulation 5x5 sim 8 spins 2500 integral 1 40k
+   - 
+
+
+
+2) res:200x200, mc_length:long REMOVE NORMALIZATION FOR FIXED t?
+   - specific instance cost_f and sgap to compare: 4 V@ and 8 V spins (with heatmap) prova con fixed lag
+   - specific instance cost_f and sgap to compare: 4 V@ and 8 spins (with heatmap) prova con fixed lag no norm
+   - specific instance cost_f and sgap to compare: 4 V@ and 8 V spins (with heatmap) prova con integral
+   - Mazzola mean sgap: (spiega le features) for n spins = 6  V@  
+   - magnetisation for n spins = 6 and explain V@
+   ???
+   - trace (u can use one of the specific instance, or even ppt)
+
+
+
+3) E M convergence (7 o 8 spins)
+   - E M convergence random 
+   - EM convergence with good fixed values (plottali insieme poi i due plots)
+
+
+
+***************************
+ALTERNATIVE MODELS (dividi random h da random j)
+
+1) 2d nearest neigh (ferromagnetic?)
+   - 
+   - sgap and cost f plot 3d for n=9 (rand no h)  V
+   - sgap and cost plot 3d for n=9 (ferromagnetic nearest neigh)  V
+
+2) 1D 
+   - 
+   - sgap and cost plot 3d for n=8 (rand no h)  V
+   - sgap and cost plot 3d for n=8 (ferromagnetic?)  V
+
+************************************************
+LOW T optimization
+
+- simulation 5x5 sim 5 spins 8000 integral 1 40k T=1  V 
+- simulation 5x5 sim 5 spins 2500 integral 1 40k T=1  V
+- simplex 5x5 sim 5 spins 7000 integral 1 10k T=1  V
+
+
+
+***************************
+SCALING (T=10)
+
+1) plot con scaling del spectral gap per best prop strat --> simula sgap mazzola, prendi il val maggiore su media instances
+   PRIORITA 2D nn random simula da n 3 a fino a dove riesci e fitta (simula parti del params space piu piccole cosi da risparmiare)
+   - 2D neasrest neigh J rand h=0 da n 3 a fino a dove riesci 
+   - 1D random J zero h da n 3 a fino a dove riesci  V
+   ?
+   - random --> use the random from SIMULATION RESULTS
+
+SCALING (T=1) ???
+
+*************************** 
+TEMPERATURE (integral approach migliora la situa?)
+
+1) optimization landscape sia appiattisce
+   -  cost f per n 6 a T=10 ,1 V@,0.1, 0.001
+
+2) evolution with T
+   - sgap for n 6 for T=10 V@, 1 V@, 0.1, 0.001
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ******************************************************
+   ******************************************************
+   - 631149.6_spins_T1_costf_20000     6 spins T1 3d colab plotter 20000
+   - 384616.5x5_sim_4_2500_integral_40k    9spins 3dplot 2d nn
+   - 386587.3x4_sim_7_2500_integral_40k    opt 7 nuova
+   - 395046.5x5_simplex_6_2500_integral_15k     opt 9 nuova
+   - 396410.3x3_sim_8_2500_lag_optz_40k        opt 8 new
+   - 506677.colab_2d_ferro       Colab single instance plot:_qmcmc_V4.8_plots_gamma_0.07_1.0_tau_1.0_10.0_res_100_cost_f_ACF_mc_length_2500_T_10_npins_9_av_1_opt_IBM_mod_2D_Ising_random_mean_0_sd_1_discard_5000_lag_integral_obs_energy
+   - 509880.scaling5       scaling 8 1D rand (??)
+   - 509930.scaling6        Colab Mazzola 2D rand scaling plot:MAZZ_avg_10_qmcmc_V4.8_plots_gamma_0.8_1.0_tau_5.0_10.0_res_30_cost_f_ACF_mc_length_4000_T_10_npins_9_av_1_opt_IBM
+   - 509996.scaling7          Colab Mazzola 2D rand scaling plot:MAZZ_avg_10_qmcmc_V4.8_plots_gamma_0.8_1.0_tau_5.0_10.0_res_25_cost_f_ACF_mc_length_4000_T_10_npins_10_av_1_opt_IBM
+   - 522606.low_T_2500_5 (24 ore), 523026.low_T1_6000_5 (175 ore), 523440.low_T1_7000_5_simplex (bo, tanto), lowT_short (32), lowT_short2 (170 ore)  low T simulations
+   - 567127.scaling9      scaling 9 1D rand (100 ore)
+   - 567193.scaling10       scaling 10 1D rand (??)
+
+   ******************************************************
+/home/dc849/miniconda3/envs/QMCMC_env/bin/python /home/dc849/QMCMC/qmcmc_plots_data_collection_new.py
+
+
+   - 631149.6_spins_T1_costf_20000    4 spins T1 2500 5x5 
+   - 599033.lowT_short_2    5 spins T1 2500 5x5
+   - 598643.lowT_short    6 spins T1 2500 5x5
+   - 567127.scaling9    4 spins T1 7500 5x5
+   - 552801.lowT1_5_6000_integral_3x 5 spins T1 7500 5x5
+   - 523440.low_T1_7000_5_simplex    4 spins T01 2500 5x5 
+   -  523026.low_T1_6000_5   5 spins T01 2500 5x5
+   - 522606.low_T_2500_5    4 spins T01 10000 5x5 
+   -  510053.scaling8   5 spins T01 10000 5x5
