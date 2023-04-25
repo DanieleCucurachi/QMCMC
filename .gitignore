@@ -6,3 +6,6 @@ screens.txt
 plotter_from_data.ipynb
 final_plots/
 plot_data/
+colab/
+simulations_plots/
+simulations_results/
