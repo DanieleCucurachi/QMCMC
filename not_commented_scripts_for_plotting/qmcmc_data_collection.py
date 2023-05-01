@@ -64,7 +64,7 @@ if cost_f_choice == 'ACF':
 #
 print('\nsimulation: ' + core_str + '\n')
 
-while data_to_collect(qmcmc_optimizer, max_iteration=30e3): 
+while data_to_collect(qmcmc_optimizer, max_iteration=40e3): 
 
     #
     args = (qmcmc_optimizer.current_state)

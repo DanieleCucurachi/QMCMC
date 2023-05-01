@@ -5,6 +5,7 @@ import numpy
 import scipy
 import matplotlib.pyplot as plt
 
+from tqdm import tqdm
 from q_systems import SpinSystem
 from qmcmc_vqe_classes import *
 

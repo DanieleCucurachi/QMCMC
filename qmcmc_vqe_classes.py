@@ -1,65 +1,120 @@
 
 VERSION = 'V4.8'
 
-import numpy
-import math  # replace math.exp with numpy.exp, cancella math se puoi, be coherent
-# import mpmath  # for low T ? better solution?
+import numpy  # mpmath for low T 
 import random
 import pandas
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from tqdm import tqdm
-#from copy import deepcopy  # delete
 from pandas import DataFrame
 from scipy.linalg import expm, kron
 from scipy.sparse.linalg import eigs
 
-# TODO: use numpy empty ro initialize arrays that u will fill up
-# TODO: check you used copy() when needed to copy array
-# potri usare cupy e ray (nell'audio chris spiega come suare + mail a balasz con esempio) 
-# ho levato al matrice numpy.matrix
-# devia ncora account for low T, il tuo codice si rompe a low T
-# from scipy.sparse import identity, kron, csr...  chris says you don't have sparse matrices so there is no advantage
-# in using sparse library --> this is because you ahve the exponential U=expm(), think, it makes it not sparse!
-# However sparse could be used if you adopot a different time evolution method (carleo)
-# import mpmath for low T calculations ####
-# #if self.iteration > 2000:  #QUESTO NON VA BENE COSI DEVI TROVARE SOLUZIONE MIGLIORE https://stackoverflow.com/questions/70724216/how-terminate-the-optimization-in-scipy
-        #    break
-
+# defining useful functions
 def data_to_collect(optimizer, max_iteration=15e3, delta_cost_f=1e5):
     '''
+    data_to_collect(optimizer, max_iteration, delta_cost_f)
+
+    Establishes whether the algorithms should halt.
+
+    Parameters
+    ----------
+    max_iteration : int
+        Max number of iterations allowed
+    delta_cost_f : float
+        Minimun change in cost function allowed
+
+    Returns
+    -------
+    data_to_collect : bool
+        False if the optimization has to be stopped
     '''
     return optimizer.iteration <= max_iteration #and optimizer.cost_f_fluctations >= delta_cost_f  #TODO:complete
 
+# defining anstaz classes
 class Ansatz():
     '''
+    Ansatz(n_spins)
+
+    Initialization parameters
+    -------------------------
+    n_spins : int
+        Number of spins in the system
     '''
     def __init__(self, n_spins):
         self.n_spins = n_spins
 
-    # HA SENSO USARE STATIC METHOD QUI? 
     @staticmethod
     def operator(pauli, i, N):
         '''
+        operator(pauli, i, N)
+
+        Returns an operator of the right dimension that applies a pauli matrix to the i-th spin in
+         a system of N spins.
+
+        Parameters
+        ----------
+        pauli : numpy.array or numpy.matrix
+            The pauli matrix to apply
+        i : int
+            The target spin's index 
+        N : int
+            The number of spins in the system
+        
+        Returns
+        -------
+        operator : numpy.array
+            The pauli operator acting on the i-th spin
         '''
         left = numpy.identity(2**i)
         right = numpy.identity(2 ** (N - i - 1))
         return kron(kron(left, pauli), right)
     
     @staticmethod
-    def list_of_op(pauli, n_spins):
+    def list_of_op(pauli, N):
         '''
+        list_of_op(pauli, N)
+
+        Returns a list of operators of the right dimension that apply a pauli matrix to a single
+        spin in a system of N spins. The i-th operator in the list applies a pauli matrix to the 
+        i-th spin.
+
+        Parameters
+        ----------
+        pauli : numpy.array or numpy.matrix
+            The pauli matrix to apply
+        N : int
+            The number of spins in the system
+
+        Returns
+        -------
+        list_of_op : list of numpy.array
         '''
-        return [Ansatz.operator(pauli, i, n_spins) for i in range(n_spins)]
+        return [Ansatz.operator(pauli, i, N) for i in range(N)]
     
     def random_params(self, **kwargs):
         '''
+        random_params(self, **kwargs)
+
+        Samples random values of the parameters defining the ansatz. It can use bounds provided when
+        alled or default bounds defined in the specific ansatz class.
+
+        Parameters
+        ----------
+        **kwargs
+            The additional keyword arguments 
+            ??????? defining the intervals to consider when uniformly sampling the
+            ansatz's parameters
+
+        Returns
+        -------
+        random_params : numpy.array
         '''
-        #
         params = []
         if 'params_bounds' in kwargs.keys():
             params_bounds = kwargs['params_bounds']
+        # if no bounds are provided, use the default ones
         else:
             params_bounds = self.params_bounds
         for bounds in params_bounds.values():
@@ -67,9 +122,21 @@ class Ansatz():
             params.append(param_value)
         return numpy.array(params)
 
-# defining classes
 class IBM_Ansatz(Ansatz):
     '''
+    IBM_Ansatz(n_spins, J, h)
+
+    Class implementing the Quantum-enhaced MCMC anstaz proposed in a recent paper by David Layden et
+    al. (https://arxiv.org/abs/2203.12497).
+
+    Initialization parameters
+    -------------------------
+    n_spins : int
+        Number of spins in the system
+    J : numpy.array
+        The matrix defining the spins' couplings
+    h : numpy.array 
+        The array defining the spin-field interatctions
     '''
     # defining class attributes
     name = 'IBM'
@@ -80,105 +147,144 @@ class IBM_Ansatz(Ansatz):
         self.h = h 
         self.params_names = ['gamma', 'tau']
         self.params_bounds = {'gamma': (.0, 1), 'tau': (2, 20)}
-        self.alpha = numpy.sqrt(self.n_spins) / numpy.sqrt( sum([self.J[i][j]**2 for i in range(self.n_spins) \
-                                for j in range(i)]) + sum([self.h[j]**2 for j in range(self.n_spins)]) )
+        self.alpha = numpy.sqrt(self.n_spins) / numpy.sqrt( sum([self.J[i][j]**2 for i in \
+                     range(self.n_spins) for j in range(i)]) + sum([self.h[j]**2 for j in \
+                                                                    range(self.n_spins)]) )
 
     def Ising_H(self):
         '''
-        if isinstance(n_spins, int):
-            pass
-        elif isinstance(n_spins, numpy.ndarray):
-            n_spins = len(n_spins)
-        else:
-            raise ('Invalid type. {} is not int or numpy.ndarray'.format(n_spins))
+        Ising_H()
+
+        Returns the Ising hamiltonian defined by the intstance attributes J (couplings) and h (fields)
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        ham : numpy.array
+            Ising hamiltonian defined by couplings J and fields h
         '''
         # generating system size pauli Z operators acting on single spins
         pauli_z = numpy.array([[1, 0], [0, -1]])
         pauli_list = IBM_Ansatz.list_of_op(pauli_z, self.n_spins)
-        # generating Ising hamiltonian (IBM paper)
+        # generating Ising hamiltonian
         ham = 0
         for i in range(self.n_spins):
             ham -= self.h[i] * pauli_list[i]
-            for j in range(i):  # implementing new method here (taken from gitlab qmcmc)
+            for j in range(i):  
                 ham -= self.J[i][j] * pauli_list[i] @ pauli_list[j]  
-        return ham  # numpy.matrix(ham)
-    
-    # COL NUOVO METODO TI LIBERI DI CICLI for nested (in realtà no, è solo piu compatto)
-    # def calculate_alpha(self, efficient=True, **kwargs):  ## mettere kwargs al posto di H_prob and Hmix
-    #     '''
-    #     '''
-    #     if efficient:
-    #         alpha_denominator = 0
-    #         for j in range(self.n_spins):
-    #             alpha_denominator += self.h[j]**2
-    #             for k in range(self.n_spins):
-    #                 alpha_denominator += self.J[j][k]**2 if j > k else 0
-    #         return math.sqrt(self.n_spins/alpha_denominator)
-    #     elif 'H_prob' in kwargs and 'H_mix' in kwargs:
-    #         # without using numpy.matrix this doeasn't work
-    #         H_prob = kwargs['H_prob']
-    #         H_mix = kwargs['H_mix']
-    #         H_prob_norm = numpy.trace(H_prob.H @ H_prob)   ### QUA SE NON USO numpy.matrix sul secondo termine della moltiplicazione mi da errore, perchè? leegi sotto
-    #         H_mix_norm = numpy.trace(H_mix.H @ H_mix)
-    #         return math.sqrt(numpy.sum(H_mix_norm)/numpy.sum(H_prob_norm))  ## qui in pratica viene fuori il fatto che kron aumenta la dimensione dell'oggetto, non crea una matrice piu grande come fai tu carta
-    #                                               ## per oviare al fatto che trace da un array (per via di kron somma diagonali su piu dimensioni) sommo sull0array, probabilmente questo non è giusto
-    #     else:
-    #         raise ValueError('if "efficient" is not True you must provide valid H_prob and H_mix matrices')
+        return ham
 
     def unitary(self, params):
         '''
+        unitary(params)
+
+        Returns the parametrized unitary implementing the QMCMC ansatz defined in the paper
+
+        Parameters
+        ----------
+        params : array_like (float)
+            The values of the parameters defining the ansatz
+
+        Returns
+        -------
+        unitary : nd.array
+            The unitary implementing the ansatz
         '''
+        # parameters defining the ansatz
         gamma = params[0]
         tau = params[1]
+        # generating the Ising hamiltonian
         pauli_x = numpy.array([[0, 1], [1, 0]])
         H_prob = self.Ising_H()
-        H_mix = sum(IBM_Ansatz.list_of_op(pauli_x, self.n_spins))  # numpy.matrix
+        H_mix = sum(IBM_Ansatz.list_of_op(pauli_x, self.n_spins))
+        # generating the full Hamiltonian
         H_full = (1-gamma)*self.alpha*H_prob + gamma*H_mix
         return expm(-1j * H_full * tau)   
 
-class Xmix_Ansatz(Ansatz):  ## modifica qmcmc to account for other ansatz (different numbers of params)
+class Xmix_Ansatz(Ansatz):
     '''
+    Xmix_Ansatz(n_spins)
+
+    Class implementing the Xmix ansatz. The Xmix ansatz consist in a sum of pauli X operators acting
+    on different spins.
+
+    Initialization parameters
+    -------------------------
+    n_spins : int
+        Number of spins in the system
+    *args
+        Ignore additional provided parameters
     '''
     # defining class attributes
     name = 'Xmix'
     
-    def __init__(self, n_spins, *args):  ## trovare un altro modo per rendere ansatz adattabili (guarda quando definisci l'insatnce in Runner)
+    def __init__(self, n_spins, *args):
         super().__init__(n_spins)
         self.params_names = ['tau']
         self.params_bounds = {'tau': (2, 20)}
 
     def unitary(self, params):
         '''
+        unitary(params)
+
+        Returns the parametrized unitary implementing the Xmix ansatz
+
+        Parameters
+        ----------
+        params : array_like (float)
+            The values of the parameters defining the ansatz
+
+        Returns
+        -------
+        unitary : nd.array
+            The unitary implementing the ansatz
         '''
         tau = params[0]
         pauli_x = numpy.array([[0, 1], [1, 0]])
-        H_mix = sum(Xmix_Ansatz.list_of_op(pauli_x, self.n_spins))  # numpy.matrix
+        H_mix = sum(Xmix_Ansatz.list_of_op(pauli_x, self.n_spins))
         H_full = expm(-1j * H_mix * tau) 
         return H_full  
 
+# defining QMCMC classes
 class QMCMC_Runner():
     '''
+    QMCMC_Runner(spin_system, ansatz)
+
+    Base class implementing the Quantum-enhanced Monte Carlo Markov chain algorithm.
+
+    Initialization parameters
+    -------------------------
+    spin_system : SpinSystem class instance
+        The considered spin system defining the Boltzmann probability we aim to sample from
+    ansatz : ansatz class
+        The class of the chosen ansatz
     '''
-    def __init__(self, spin_system, ansatz):  #### ansatz=QMCMC_Ansatz, remove kwargs??
-        # here u should usse assert to check everything is alright
+    def __init__(self, spin_system, ansatz):
         self.beta = spin_system.beta
         self.n_spins = spin_system.n_spins
         self.J = spin_system.J
         self.h = spin_system.h
         self.current_state = spin_system.statevector
         self.ansatz = ansatz(self.n_spins, self.J, self.h)
-        self.explored_states = numpy.zeros(2**self.n_spins, dtype=int)  # don't like this, find better way
+        self.explored_states = numpy.zeros(2**self.n_spins, dtype=int)
     
-    def config_from_x(self, x):  # ???????? DA AGGIORNARE DATO IL NUOVO SPINSYSTEM
+    def config_from_x(self, x):
         '''
+        #TODO: move to SpinSystem() class
         '''
-        # converting int in binary string
+        # converting decimal number into binary string
         binary_str = bin(int(x)).replace("0b","")[::-1]
         # creating a spins config from the binary string
-        spins_config = numpy.concatenate((numpy.array(list(binary_str), dtype=int), numpy.zeros(self.n_spins - len(binary_str))))
+        spins_config = numpy.concatenate((numpy.array(list(binary_str), dtype=int), 
+                                          numpy.zeros(self.n_spins - len(binary_str))))
         return numpy.array([1 if i==1 else -1 for i in spins_config])
     
-    def config_energy(self, spins_config, J_symmetric=False):  # ??????????? DA AGGIORNARE DATO IL NUOVO SPINSYSTEM
+    def config_energy(self, spins_config, J_symmetric=False): 
+        '''
+        #TODO: move to SpinSystem() class
+        '''
         if J_symmetric:
             energy = 0.5 * numpy.dot(spins_config.transpose(), -self.J.dot(spins_config)) + \
                     numpy.dot(-self.h.transpose(), spins_config)
@@ -192,6 +298,29 @@ class QMCMC_Runner():
 
     def delta(self, i, j, verbose=False):
         '''
+        delta(i, j, verbose)
+
+        Calculates the energy difference of two spins configurations.
+
+        Parameters
+        ----------
+        verbose : bool
+            If True, returns the individual spins configurations energies and magnetizations
+            If False returns the energy difference of the two spins configurations
+        i, j : int, int
+            The decimal numbers associated with the spins configurations
+
+        Returns('verbose'==True)
+        -------
+        prop_state_en, curr_state_en : float, float
+            The individual spins configurations energies
+        prop_state_mag, curr_state_mag : float, float
+            The individual spins configurations magnetizations
+
+        Returns('verbose'==False)
+        -------
+        delta : float
+            Energy difference of the two spins configurations associated with i and j numbers
         '''
         spin_state_i = self.config_from_x(i)
         spin_state_j = self.config_from_x(j)
@@ -201,11 +330,24 @@ class QMCMC_Runner():
             return prop_state_en, curr_state_en, numpy.sum(spin_state_i), numpy.sum(spin_state_j)
         else:
             return prop_state_en - curr_state_en
-    
-    #TODO: just modified delta, need to rewrite all the methods below
 
     def run_qmcmc_step(self, U):
         '''
+        run_qmcmc_step(U)
+
+        Runs a single step of a Quantum-enhanced Monte Carlo Markov chain.
+
+        Parameters
+        ----------
+        U : numpy.array
+            The unitary implementing the quantum proposal strategy
+
+        Returns
+        -------
+        state_en : float
+            Energy of the visited state
+        state_mag : float
+             Magnetization of the visited state
         '''
         # proposing a new state
         evolved_state = U @ self.current_state
@@ -213,106 +355,75 @@ class QMCMC_Runner():
         measurement_result = random.choices(range(prob_vector.size), weights=prob_vector, k=1)[0]
         # accepting or rejecting new state
         current_state_idx = numpy.nonzero(self.current_state)[0][0]
-        prop_state_en, curr_state_en, prop_state_mag, curr_state_mag = self.delta(measurement_result, current_state_idx, verbose=True)  # magari inverti in modo da avere lo stesso ordine del paper
-        A = min(1, math.exp(-self.beta * (prop_state_en - curr_state_en)))
+        prop_state_en, curr_state_en, prop_state_mag, curr_state_mag = self.delta(measurement_result
+                                                                  , current_state_idx, verbose=True)
+        A = min(1, numpy.exp(-self.beta * (prop_state_en - curr_state_en)))
         if A >= random.uniform(0, 1):
             # updating current mc state
-            self.current_state = numpy.zeros(2**self.n_spins, dtype=complex) ## da riscrivere questa, non ha senso cosi, fai tipo una funzione
+            self.current_state = numpy.zeros(2**self.n_spins, dtype=complex)
             self.current_state[measurement_result] += (1 + 0j)
             # tracking the visited states during the MC
             self.explored_states[measurement_result] += 1
-            # return observables values
+            # returning observables values
             return prop_state_en, prop_state_mag
         else:
             # tracking the states visited during the MC
             self.explored_states[current_state_idx] += 1
-            # return observables values
+            # returning observables values
             return curr_state_en, curr_state_mag
-    
-    # def random_params(self, **kwargs):
-    #     '''
-    #     '''
-    #     #
-    #     params = []
-    #     if 'params_bounds' in kwargs.keys():
-    #         params_bounds = kwargs['params_bounds']
-    #     else:
-    #         params_bounds = self.ansatz.params_bounds
-    #     for bounds in params_bounds.values():
-    #         param_value = numpy.random.uniform(low=bounds[0], high=bounds[1], size=None)
-    #         params.append(param_value)
-    #     return numpy.array(params)
 
-    def observables_convergence_check(self, mc_steps, en_df, mag_df, idx, **kwargs):  # DA RIVEDERE DOPO che hai cambiato observables
+    def run_random_qmcmc(self, mc_steps, sgap_array, params_bounds={'gamma': (0.2, 0.6), 'tau': (2, 20)}):
         '''
-        '''
-        #
-        energy_sum = 0
-        magnetization_sum = 0
-        #
-        sample_mean_energy = numpy.zeros(mc_steps, dtype=float)
-        sample_mean_magnetization = numpy.zeros(mc_steps, dtype=float)
-        #
-        for mc_step in range(mc_steps):  # non stai includendo l'energia dello stato iniziale
-            #
-            if 'params_bounds' in kwargs.keys():
-                params = self.ansatz.random_params(params_bounds=kwargs['params_bounds'])
-                U = self.ansatz.unitary(params)
-            elif 'fixed_params' in kwargs.keys():
-                U = self.ansatz.unitary(kwargs['fixed_params'])
-            else:
-                print('\nsampling random parameters using ansatz default bounds\n')
-                params = self.ansatz.random_params()
-                U = self.ansatz.unitary(params)
-            #
-            mc_step_energy, mc_step_magnetization = self.run_qmcmc_step(U)
-            energy_sum += mc_step_energy
-            magnetization_sum += mc_step_magnetization
-            sample_mean_energy[mc_step] = energy_sum/(mc_step+1)  # magari con mean() si puo fare meglio
-            sample_mean_magnetization[mc_step] = magnetization_sum/(mc_step+1)
-            #
-            en_df[f'energy {idx}'] = sample_mean_energy.tolist()
-            mag_df[f'energy{idx}'] = sample_mean_magnetization.tolist()
-        return en_df, mag_df
+        run_random_qmcmc(mc_steps, sgap_array, params_bounds)
 
-    def run_random_qmcmc(self, mc_steps, sgap_array, params_bounds={'gamma': (0.2, 0.6), 'tau': (2, 20)}): # DA RIVEDERE DOPO che hai cambiato observables
+        Runs a Quantum-enhanced Monte Carlo Markov chain sampling random values for the ansatz
+        parameters in each step. This is the approach adopted by David Layden et al. in a recent
+        paper (https://arxiv.org/abs/2203.12497). The values of the spectral gap at each step are
+        stored in an array which, in the end, is appended as a row to an input ndarray. 
+
+        Parameters
+        ----------
+        mc_steps : int
+            The number of Markov chain steps
+        sgap_array : numpy.array
+            The input array to which the row will be appended 
+        params_bounds : dict
+            Dictionary containing the intervals from which the parameters defining the ansatz are
+            sampled in the format {'parameter name': (lower bound, upper bound), ...}
+
+        Returns
+        -------
+        sgap_array : numpy.array
+            The modified array with the appended row
         '''
-        '''
-        #TODO: can run only IBM ansatz, maybe it should be universal instead (IN REALTA PENSO FUNZIONI ANCHE CON Xmix)
-        # DEVI CAMBIARE self.mc_steps in mc_steps
         sgap_register = numpy.zeros(mc_steps, dtype=float)
         #
         for step in range(mc_steps):
-            # defining random value for the ansatz parameters QUI PUOI METTERLO COME METHOD IN IBM ANSATZ!
+            # defining random value for the ansatz parameters
             params = self.ansatz.random_params(params_bounds=params_bounds)
             # defining ansatz and calculating respective spectral gap
             sgap_register[step] = self.calculate_sgap(params)
         # saving the results
         sgap_array = numpy.concatenate((sgap_array, sgap_register))
-        #sgap_df = sgap_df.append({'sgap mean': sgap_register.mean(), 'sgap std': sgap_register.std()}, ignore_index=True)
+        # sgap_df = sgap_df.append({'sgap mean': sgap_register.mean(), 'sgap std': sgap_register.std()}, ignore_index=True)
         return sgap_array
-        
 
-    def run_fixed_params_qmcmc(self, mc_steps, params, observables_df, run, return_sgap=False): # DA RIVEDERE DOPO che hai cambiato observables
+    def calculate_sgap(self, params):
         '''
-        '''
-        energy_register = numpy.zeros(mc_steps, dtype=float)
-        magnetization_register = numpy.zeros(mc_steps, dtype=float)
-        # defining ansatz
-        U = self.ansatz.unitary(params)
-        for step in range(mc_steps):
-            # running MC step and saving the partial results
-            energy_register[step], magnetization_register[step] = self.run_qmcmc_step(U)
-        # saving the results
-        observables_df[f'energy{run}'] = self.energy_register.tolist()
-        observables_df[f'magnetization{run}'] = self.magnetization.tolist()
-        if return_sgap:
-            return observables_df, self.calculate_sgap(params)
-        else:
-            return observables_df
+        calculate_sgap(params)
 
-    def calculate_sgap(self, params):  # FIND better solution for autocorrellation time
-        '''
+        Provided a set parameters defining the quantum proposal distribution, it calculates the
+        spectral gap.
+
+        Parameters
+        ----------
+        params : array_like (float)
+            The parameters defining the quantum proposal distribution
+
+        Returns
+        -------
+        spectral_gap : float
+            The value of the spectral gap
         '''
         # calculating U (proposal strategy)
         U = self.ansatz.unitary(params)
@@ -326,62 +437,99 @@ class QMCMC_Runner():
                 if i==j:
                     for k in range(2**self.n_spins):
                         P[i][j] += (1 - min(1, numpy.exp(-self.beta * self.delta(k, i)))) * abs(U[i][k])**2
+        # diagonalizing P
         eigenvals = eigs(P, k=2, which='LM', return_eigenvectors=False)
-        return 1 - abs(eigenvals[-2]) # eigenvals[-1].real - abs(eigenvals[-2])
-
-    # FORSE UNA FUNZIONE COME get_save_dict() ci potrebbe stare
+        # returning the spectral gap
+        return 1 - abs(eigenvals[-2])  # eigenvals[-1].real - abs(eigenvals[-2])
 
 class QMCMC_Optimizer(QMCMC_Runner):
     '''
+    QMCMC_Optimizer(spin_system, ansatz, mc_length, average_over=1, cost_f_choice='ACF',
+                   optimization_approach='concatenated_mc', check_point=5000, observable='energy',
+                   verbose=True,**kwargs)
+
+    A class implementing the QMCMC optimization algorithm.
+
+    Initialization parameters
+    -------------------------
+    spin_system : SpinSystem class instance
+        The considered spin system defining the Boltzmann probability we aim to sample from
+    ansatz : ansatz class
+        The class of the chosen ansatz
+    mc_length : int
+        The number of Markov chain steps to perform
+    average_over : int
+        # TODO: remove
+    cost_f_choice : string
+        Specifies the type of cost function used
+    optimization_approach : string
+        Specifies the type of optimization approach used
+    check_point : int
+        Defines after how many steps a summary of the current state of the optimization process is
+        printed out
+    observable : string
+        In case 'cost_f_choice'=='ACF', specifies the observable used to calculate the cost function
+    verbose : bool
+        If True, a summary of the optimization process is printed out at every check point
+    **kwargs
+        The additional keyword arguments
     '''
     def __init__(self, spin_system, ansatz, mc_length, average_over=1, cost_f_choice='ACF',
                    optimization_approach='concatenated_mc', check_point=5000, observable='energy',
-                     verbose=True,**kwargs):  #### ansatz=QMCMC_Ansatz
-        # TODO: here u should usse assert to check everything is alright
+                     verbose=True,**kwargs): 
         super().__init__(spin_system, ansatz)
         self.mc_length = mc_length
         self.average_over = average_over
         self.iteration = 0
         self.check_point = check_point
         self.optimization_approach = optimization_approach
-        self.db = DataFrame(columns=['cost f', 'spectral gap'] + self.ansatz.params_names)  #  add 'epsilon',
+        self.db = DataFrame(columns=['cost f', 'spectral gap'] + self.ansatz.params_names) 
         self.full_explored_states = numpy.zeros(shape=2**self.n_spins, dtype=int)
         self.observable = observable
         self.verbose = verbose
-        self.observable_register = None  # non mi piace
+        self.observable_register = None
         self.cost_f_choice = cost_f_choice
         if self.cost_f_choice == 'L':
             self.boltzmann_prob = self.calculate_boltzmann_prob()
         elif self.cost_f_choice == 'ACF':
             self.discard_initial_transient(kwargs['initial_transient'] if 'initial_transient' in kwargs.keys() else self.n_spins * 1e3)
             self.lag = kwargs['lag'] if 'lag' in kwargs.keys() else 5
-            # TODO: qui gli dai un array di tre dove hai lag, noise e scale, ... trova soluzione migliore, magari usa una dictionary per lag
             if isinstance(self.lag, dict):
                 self.cost_f_register = numpy.zeros(3, dtype=float)
                 self.current_cost_f_best = numpy.zeros(3, dtype=float)
                 self.past_cost_f_best = numpy.zeros(3, dtype=float)
-                self.acf_noise = self.lag['acf_noise']  # TODO: use chris suggestion to calculate, penso sia da calcolare dentro qui non da dare da fuori
-                self.lag_scale = self.lag['lag_scale']  # TODO: better values? how do we chose it? puoi calcolare la larghezza della curva partendo da tau estimate as 2^kn
+                self.acf_noise = self.lag['acf_noise']  
+                self.lag_scale = self.lag['lag_scale']  
                 self.lags_array = self.generate_lags_array(self.lag['lag'])
         else:
             raise ValueError('\nProvide valid cost funtion (cost_f_choice):\n- "L"\n- "ACF"\n')
 
     def discard_initial_transient(self, initial_transient):
         '''
+        discard_initial_transient(initial_transient)
+
+        Runs a ceratin number of Markov chain steps without saving the results.
+
+        Parameters
+        ----------
+        initial_transient : int
+            The number of Markov chain steps to run
+
+        Returns
+        -------
         '''
-        def run_mc(U): # TROVA UN ALTRA SOLUZIONE (self NO qui) devi rifare bene sta funzione che runna le mc
+        def run_mc(U):
             # proposing a new state
             evolved_state = U @ self.current_state
             prob_vector = numpy.array([(abs(a))**2 for a in evolved_state])
             measurement_result = random.choices(range(prob_vector.size), weights=prob_vector, k=1)[0]
             # accepting or rejecting new state
             current_state_idx = numpy.nonzero(self.current_state)[0][0]
-            delta = self.delta(measurement_result, current_state_idx)  # magari inverti in modo da avere lo stesso ordine del paper
-            A = min(1, math.exp(-self.beta * delta))
+            delta = self.delta(measurement_result, current_state_idx)
+            A = min(1, numpy.exp(-self.beta * delta))
             if A >= random.uniform(0, 1):
-                self.current_state = numpy.zeros(2**self.n_spins, dtype=complex) ## da riscrivere questa, non ha senso cosi, fai tipo una funzione
+                self.current_state = numpy.zeros(2**self.n_spins, dtype=complex)
                 self.current_state[measurement_result] += (1 + 0j)
-        #
         mc_step = 0
         while mc_step < initial_transient:
             gamma = numpy.random.uniform(low=0.2, high=0.6, size=None)  # interval used in IBM's paper
@@ -390,12 +538,23 @@ class QMCMC_Optimizer(QMCMC_Runner):
             U = self.ansatz.unitary(params)
             run_mc(U)
             mc_step += 1
-        #
         if self.verbose:
-            print(f'\n\ndiscarded {int(initial_transient)} points\n')
+            print(f'\n\nDiscarded {int(initial_transient)} samples\n')
     
     def calculate_boltzmann_prob(self):  # spostare in IsingModel()?
         '''
+        calculate_boltzmann_prob()
+
+        Calculates the Boltzmann probabilities for the considered spin system.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        boltzmann prob : numpy.array
+            The array containing the probabilities. The i-th entry represents the Boltzmann prob of
+            the configuration whose decimal representation is the number i
         '''
         # calculating Boltzmann probabilities for each spin configuration
         boltzmann_exp = numpy.zeros(shape=2**self.n_spins)
@@ -405,18 +564,32 @@ class QMCMC_Optimizer(QMCMC_Runner):
         partition_function = sum(boltzmann_exp)
         return numpy.array([i/partition_function for i in boltzmann_exp])
 
-    # # l'idea qui sarebbe di staccare calculate_sgap in due parti dove la prima calcola P e la seconda calcola sgap
-    # # dato P in input --> così da poter usare P anche per calcolare epsilon. Inoltre la parte che calcola P potrebbe
-    # # avrebbe come opzione la possibiloità di dare una U in input, così eviti di doverla calcolare più volte
-    # # in run_IBM_qmcmc e run_fixed_params_qmcmc
-    # def tot_variational_dist(self):    
-    #     normalization = sum(self.explored_states)  # this could be done smarter: n = t+1 (ma devi prima modificare call() in modo che il primo stato sia incluso in quelli esplorati)
-    #     mc_pd_approx = numpy.array([i/normalization for i in self.explored_states])
-    #     distances = numpy.absolute(self.boltzmann_prob - mc_pd_approx)
-    #     return numpy.amax(distances)
-
     def delta(self, i, j, verbose=False):  # change verbose name, find better one
         '''
+        delta(i, j, verbose)
+
+        Calculates the energy and magnetization difference of two spins configurations.
+
+        Parameters
+        ----------
+        verbose : bool
+            If True, depending on the chosen observable, returns the individual spins
+            configurations energies or magnetizations together with the difference
+            If False, returns the energy difference of the two spins configurations
+        i, j : int, int
+            The decimal numbers associated with the spins configurations
+
+        Returns('verbose'==True)
+        -------
+        prop_state_ , curr_state_ : float, float
+            The individual spins configurations energies or magnetizations
+        prop_state_mag, curr_state_mag : float, float
+            The individual spins configurations magnetizations
+
+        Returns('verbose'==False)
+        -------
+        delta : float
+            Energy difference of the two spins configurations associated with i and j numbers
         '''
         spin_state_i = self.config_from_x(i)
         spin_state_j = self.config_from_x(j)
@@ -432,38 +605,47 @@ class QMCMC_Optimizer(QMCMC_Runner):
 
     def cost_function(self):
         '''
+        cost_function()
+
+        Calculates the cost function on a set of Markov chain samples.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        cost : float
+            The value of the cost function
         '''
         cost = 0
         if self.cost_f_choice == 'L':
-            for i in range(2**self.n_spins): #### metti len(probabilities vector) e devi mettere un versione che sia ggioran di prob vector
+            for i in range(2**self.n_spins): 
                 for j in range(i):
-                    if self.explored_states[i]!=0 and self.explored_states[j]!=0 :  # do not count two times the pairs (new method here?)
-                        numerator = math.exp(-self.beta * self.delta(i, j))
+                    if self.explored_states[i]!=0 and self.explored_states[j]!=0 :
+                        numerator = numpy.exp(-self.beta * self.delta(i, j))
                         denominator = self.explored_states[i]/self.explored_states[j]
                         x_i_j = numerator/denominator
                         cost -= (1/((1/x_i_j) + x_i_j))
         elif self.cost_f_choice == 'ACF':
-            # TODO: use sum([(observable[i] - sample_mean)*(observable[i+lag] - sample_mean) 
-            # for i in range(observable.size - lag)])
             observable = self.observable_register
             sample_mean = observable.mean()
             # fixed lag
             if isinstance(self.lag, int): 
-                # TODO: WARNING not compatible with 'random_start_mc', find a solution
                 for i in range(observable.size - self.lag):
                     cost += (observable[i] - sample_mean)*(observable[i+self.lag] - sample_mean)
-                # cost /= (observable.size - self.lag)  # TODO: REMOVE
-            # single lag optimization
+                # cost /= (observable.size - self.lag)  # TODO: remove
+            # lag optimization
             elif isinstance(self.lag, dict):
                 for lag_idx, lag in enumerate(self.lags_array):
                     for i in range(observable.size - lag):
-                        self.cost_f_register[lag_idx] += (observable[i] - sample_mean)*(observable[i+lag] - sample_mean)
-                    self.cost_f_register[lag_idx] /= (observable.size - lag)  # do not remove
+                        self.cost_f_register[lag_idx] +=  \
+                                 (observable[i] - sample_mean)*(observable[i+lag] - sample_mean)
+                    self.cost_f_register[lag_idx] /= (observable.size - lag) 
                 cost = self.cost_f_register[1]
                 #
                 if cost < self.current_cost_f_best[1] or not self.current_cost_f_best.any():
                     self.current_cost_f_best = self.cost_f_register.copy()
-            # ACF integral 
+            # lag integration 
             elif self.lag == 'integral':
                 lag = 1
                 c = 0
@@ -472,38 +654,25 @@ class QMCMC_Optimizer(QMCMC_Runner):
                     c = 0
                     for i in range(observable.size - lag):
                         c += (observable[i] - sample_mean)*(observable[i+lag] - sample_mean)
-                    c /= (observable.size - lag)  # do not remove, otherwise you overestimate small lag terms
+                    c /= (observable.size - lag)
                     lag += 1
-            # TODO: here u can merge these two, the code is identical basically
             # exponential decay fit
-            elif self.lag == 'acf_fit':
-                acf = []
-                lag = 1
-                while lag < observable.size:
-                    c = 0
-                    for i in range(observable.size - lag):
-                        c += (observable[i] - sample_mean)*(observable[i+lag] - sample_mean)
-                    c /= (observable.size - lag)  # TODO: remove? don't think so
-                    if c >= 0:
-                        acf.append(c)
-                    else:
-                        break    
-                    lag += 1
-                # linearizing the system, and fitting a line to the log of the data (https://stackoverflow.com/questions/3938042/fitting-exponential-decay-with-no-initial-guessing)
-                acf = numpy.log(acf)
-                # fitting the linearized data
-                first_order_coeff, _ = numpy.polyfit(range(1, acf.size + 1), acf, 1)
-                # derivating autocorrelation time (tau) to use it as cost function
-                cost = - 1/first_order_coeff  # TODO: non mi piace il fatto che dividi di nuovo perdi info anche qua a gratis
+            # elif self.lag == 'acf_fit':
+            #     #TODO: remove
 
-            # AGGIUNGERE CHECK SUL LAG MA FORSE MEGLIO FARLO ALL'INIZIO __init__() con assert, così appena crei la classe ti dice
-            # che non va bene
         return cost
-        # else:
-        #     raise ValueError('Provide valid cost funtion (cost_f_choice):\n- "L"\n- "ACF"')  # this is useless as there is already a check for this
     
     def optimize_lag(self):
         '''
+        optimize_lag()
+
+        Optimize the lag value during the optimization process.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
         '''
         #
         if not self.past_cost_f_best.any():
@@ -525,19 +694,38 @@ class QMCMC_Optimizer(QMCMC_Runner):
 
     def generate_lags_array(self, lag):
         '''
+        generate_lags_array(lag)
+
+        Provided a lag value, it returns an array containing the original value shifted by 
+        -'lag_scale', 0 and +'lag_scale'.
+
+        Parameters
+        ----------
+        lag : int
+            The lag value
+
+        Returns
+        -------
+        lag_array : numpy.array
+            The array containing the three lag values 
         '''
         return numpy.array([lag - self.lag_scale, lag, lag + self.lag_scale])
 
-    # def random_state(self): # bo, non so se ha senso metterlo qui, forse meglio tenerlo in SpinSystem
-    #     '''
-    #     Inizializing random state
-    #     '''
-    #     rand_state = numpy.zeros(2**self.n_spins, dtype=complex)  ## da riscrivere questa, non ha senso cosi, fai tipo una funzione
-    #     rand_state[random.randint(0, 2**self.n_spins - 1)] += (1 + 0j)  # possibilità di scegliere la phase
-    #     return rand_state
-
-    def run_qmcmc_step(self, U):  # QUESTA E' DA RIVEDERE, NON MI PIACE LA SOLUZIONE CHE STAI USANDO
+    def run_qmcmc_step(self, U):
         '''
+        run_qmcmc_step(U)
+
+        Runs a single step of a Quantum-enhanced Monte Carlo Markov chain.
+
+        Parameters
+        ----------
+        U : numpy.array
+            The unitary implementing the quantum proposal strategy
+
+        Returns
+        -------
+        state_obs : float
+            The value of the chosen observable of the visited state
         '''
         # proposing a new state
         evolved_state = U @ self.current_state
@@ -545,10 +733,11 @@ class QMCMC_Optimizer(QMCMC_Runner):
         measurement_result = random.choices(range(prob_vector.size), weights=prob_vector, k=1)[0]
         # accepting or rejecting new state
         current_state_idx = numpy.nonzero(self.current_state)[0][0]
-        delta, prop_state_obs, curr_state_obs = self.delta(measurement_result, current_state_idx, verbose=True)  # magari inverti in modo da avere lo stesso ordine del paper
-        A = min(1, math.exp(-self.beta * delta))
+        delta, prop_state_obs, curr_state_obs = self.delta(measurement_result, current_state_idx,
+                                                            verbose=True)
+        A = min(1, numpy.exp(-self.beta * delta))
         if A >= random.uniform(0, 1):
-            self.current_state = numpy.zeros(2**self.n_spins, dtype=complex) ## da riscrivere questa, non ha senso cosi, fai tipo una funzione
+            self.current_state = numpy.zeros(2**self.n_spins, dtype=complex)
             self.current_state[measurement_result] += (1 + 0j)
             self.explored_states[measurement_result] += 1
             return prop_state_obs
@@ -558,30 +747,42 @@ class QMCMC_Optimizer(QMCMC_Runner):
 
     def __call__(self, params, *args):
         '''
-        potrei fare una funzione per runnare le micro mc separata e chiamarla qui
+        __call__(params, *args)
+
+        Runs a single step of a Quantum-enhanced Monte Carlo Markov chain.
+
+        Parameters
+        ----------
+        params : array_like
+            The parameters defining the quantum proposal strategy
+        *args
+            The additional arguments
+
+        Returns
+        -------
+        cost_f_value : float
+            The value of the cost function on a set of Markov chain samples
         '''
-        # creating arrays to save cost function and total variational distance (epsilon) running values
-        cost_f_values = numpy.zeros(self.average_over, dtype=float) # meglio definire prima lo spazio in memoria e poi riempirlo https://stackoverflow.com/questions/568962/how-do-i-create-an-empty-array-and-then-append-to-it-in-numpy
+        cost_f_values = numpy.zeros(self.average_over, dtype=float) 
         # defining U
         U = self.ansatz.unitary(params)
-        #
         # running MCMC proposing states with U(params) 
-        if self.optimization_approach == 'concatenated_mc':  # qua forse leva il fatto che fai la average, non serve con questo approccio
+        if self.optimization_approach == 'concatenated_mc':
             for m in range(self.average_over):
                 self.explored_states = numpy.zeros(2**self.n_spins, dtype=int)
                 self.observable_register = numpy.zeros(self.mc_length, dtype=float)
                 for n in range(self.mc_length):
                     self.observable_register[n] = self.run_qmcmc_step(U)
                 # saving current cost function value
-                cost_f_values[m] = self.cost_function() # doesn't work when average_over = 1
-                # updating explored states registers (QUANTO FAI LA MEDIA SAREBBE BUONA IDEA PASSARE LA MEDIA DEGLI SATTI ESPLORATI (V2.5))
+                cost_f_values[m] = self.cost_function()
+                # updating explored states registers
                 self.full_explored_states += self.explored_states
 
         elif self.optimization_approach == 'same_start_mc':
             for m in range(self.average_over):
                 self.explored_states = numpy.zeros(2**self.n_spins, dtype=int)
                 self.observable_register = numpy.zeros(self.mc_length, dtype=float)
-                self.current_state = args[0]  ## better solution??
+                self.current_state = args[0]
                 for n in range(self.mc_length):
                     self.observable_register[n] = self.run_qmcmc_step(U)
                 # saving current cost function realization
@@ -590,16 +791,15 @@ class QMCMC_Optimizer(QMCMC_Runner):
                 self.full_explored_states += self.explored_states
                 
         elif self.optimization_approach == 'random_start_mc':
-            #
+            # starting from a randomly selected state
             init_state = self.spin_system.random_state()
-            #
             for m in range(self.average_over):
                 self.explored_states = numpy.zeros(2**self.n_spins, dtype=int)
                 self.observable_register = numpy.zeros(self.mc_length, dtype=float)
                 self.current_state = init_state
                 for n in range(self.mc_length):
                     self.observable_register[n] = self.run_qmcmc_step(U)
-                # saving current cost function and total variational distance (epsilon) realizations
+                # saving current cost function
                 cost_f_values[m] = self.cost_function()
                 # updating explored states registers
                 self.full_explored_states += self.explored_states
@@ -607,26 +807,28 @@ class QMCMC_Optimizer(QMCMC_Runner):
             raise ValueError('Provide valid optimization approach (optimization_approach):' + \
                              '\n- "concatenated_mc"\n- "random_start_mc"\n- "same_start_mc"')
 
-        # counting function evaluations during SciPy optimization (one evaluation corrispond to running m MC of t steps)
-        self.iteration += 1  # dovrei metterlo in get_dict_save e contare gli opt steps invece?
+        # counting how many times the cost function is evaluated
+        self.iteration += 1 
         if self.iteration % self.check_point == 0 and self.verbose:
-            print('\ncost function evaluated:', self.iteration, 'times\n')
+            print('\nCost function evaluated:', self.iteration, 'times\n')
         # returning scalar value for scipy to optimize
         return cost_f_values.mean()
 
-    # def calculate_sgap(self, params, return_ac_time):  # FIND better solution for autocorrellation time
-    #     '''
-    #     '''
-    #     slem = super().calculate_sgap(params)
-    #     if return_ac_time:
-    #         return slem, -1/(numpy.log(slem))
-    #     else:
-    #         return slem
-
-    def get_save_results(self, termination_message=False, **kwargs):  # KEEP INCREASING DF SIZE --> BAD PERFORMACES maybe can find better solution
+    def get_save_results(self, termination_message=False, **kwargs):
         '''
-            results.x: ndarray solution of the optimization
-            add 'epsilon': self.epsilon
+        get_save_results(termination_message, **kwargs)
+
+        Saves the current optimization results in a pandas DataFrame.
+
+        Parameters
+        ----------
+        termination_message : bool
+            The parameters defining the quantum proposal strategy
+        **kwargs
+            The additional arguments
+
+        Returns
+        -------
         '''
         if 'results' in kwargs.keys():
             results = kwargs['results']
@@ -642,18 +844,27 @@ class QMCMC_Optimizer(QMCMC_Runner):
             for param_idx in range(len(self.ansatz.params_names)):
                 dictionary[self.ansatz.params_names[param_idx]] = params[param_idx]
         else:
-            # here you should use assert
             raise ValueError('Provide valid input:\n- result = scipy OptimizeResult object' + \
                                 '\n- params = array like object, cost_f = scalar value')
         # saving current optimization step results
-        # self.db = self.db.append(dictionary, ignore_index=True)  # append is deprecated
+        # self.db = self.db.append(dictionary, ignore_index=True)  # TODO: remove
         self.db = pandas.concat([self.db, DataFrame([dictionary])], axis=0, ignore_index=True) 
         # printing update message
         if self.verbose:
-            print(f"\n----------        current sgap value: {round(dictionary['spectral gap'], 3)}, params values: {params}        ----------\n")
+            print(f"\n----------        Current sgap value: {round(dictionary['spectral gap'], 3)},"
+                  + f" params values: {params}        ----------\n")
 
-class IsingModel():  # FIND BETTER SOLUTION (two classes with inheritance 1DIsing and 2DIsing??)
+# defining Ising model classes
+class IsingModel():
     '''
+    IsingModel(n_spins)
+
+    A base class for Ising models.
+
+    Initialization parameters
+    -------------------------
+    n_spins : int 
+        Number of spins in the system
     '''
     def __init__(self, n_spins):
         '''
@@ -663,8 +874,20 @@ class IsingModel():  # FIND BETTER SOLUTION (two classes with inheritance 1DIsin
 
 class IsingModel_1D(IsingModel):
     '''
+    IsingModel_1D(n_spins, random=True, **kwargs)
+
+    A class for 1D Ising models with periodic (toroidal) boundary conditions.
+
+    Initialization parameters
+    -------------------------
+    n_spins : int 
+        Number of spins in the system
+    random : bool
+        If True, couplings J and fields h are randomly sampled from a Gaussian prob distribution
+    **kwargs
+        The additional keyword arguments
     '''
-    def __init__(self, n_spins, random=True, **kwargs):  # magari cambia il nome random + kwargs non sono sicyro sia meglio di mettere scale=1
+    def __init__(self, n_spins, random=True, **kwargs):
         super().__init__(n_spins)
         self.name = '1D_' + self.name
         self._J = self.build_J(random, **kwargs)
@@ -680,6 +903,21 @@ class IsingModel_1D(IsingModel):
 
     def build_J(self, random, **kwargs):
         '''
+        build_J(random, **kwargs)
+
+        Returns the symmetric spin couplings matrix J.
+
+        Parameters
+        ----------
+        random : bool
+            If True, J entries are randomly sampled from a Gaussian prob distribution
+        **kwargs
+            The additional keyword arguments
+
+        Returns
+        -------
+        J : numpy.array
+            The couplings matrix
         '''
         if random:
             if 'J_scale' in kwargs.keys():
@@ -710,11 +948,26 @@ class IsingModel_1D(IsingModel):
             J[0][self.n_spins-1] = J_value
             # defining instance name
             self.name += f'_Jval_{round(J_value, 2)}'
-        # making J symmetric and return couplings matrix
+        # making J symmetric and returning it
         return  numpy.round(J + J.transpose(), decimals=3)
 
     def build_h(self, random, **kwargs):
         '''
+        build_h(random, **kwargs)
+
+        Returns the spin-field interactions vector.
+
+        Parameters
+        ----------
+        random : bool
+            If True, h entries are randomly sampled from a Gaussian prob distribution
+        **kwargs
+            The additional keyword arguments
+
+        Returns
+        -------
+        h : numpy.array
+            The fields vector
         '''
         if random:
             if 'h_scale' in kwargs.keys():
@@ -741,46 +994,81 @@ class IsingModel_1D(IsingModel):
     
     def summary(self, plot=True):
         '''
+        summary(plot)
+
+        Prints out a summary of the model.
+
+        Parameters
+        ----------
+        plot : bool
+            If True, prints out a colormap representing the spin couplings J
+        
+        Returns
+        -------
         '''
         print('\n\n============================================================')
         print('          MODEL : ' + self.name)
         print('============================================================')
         print('Non-zero Interactions (J) : ' + str(int(numpy.count_nonzero(self._J) /2)) + \
                  ' / ' + str(int(0.5 * self.n_spins * (self.n_spins - 1))))
-        print('Non-zero Bias (h) : ' + str(int(numpy.count_nonzero(self._h))) + ' / ' + str(self.n_spins))
+        print('Non-zero Bias (h) : ' + str(int(numpy.count_nonzero(self._h))) + ' / ' + \
+               str(self.n_spins))
         print('------------------------------------------------------------')
-        print('Average Interaction Strength <|J|>: ', round(numpy.sum(numpy.abs(self._J))/numpy.count_nonzero(self._J), 3))
+        print('Average Interaction Strength <|J|>: ', round(numpy.sum(numpy.abs(self._J)) / \
+                                                                  numpy.count_nonzero(self._J), 3))
         print('Average Bias Strength <|h|>: ', round(numpy.mean(numpy.abs(self._h)), 3))
         print('------------------------------------------------------------\n\n')
 
         if plot:
-            plt.figure()  # figsize=(16,10), dpi=200
+            plt.figure(figsize=(6,5), dpi=100)
             print('Spins coupling heatmap: \n')
-            sns.heatmap(self._J, square=True, annot=False, cbar=True).set(xlabel='spin index', ylabel='spin index')
-            # hm.set_ylabel('spin index', fontsize=25, fontname='Liberation Serif', labelpad=10)
-            # hm.set_xlabel('spin index', fontsize=25, fontname='Liberation Serif', labelpad=10)
-            # hm.tick_params(labelsize=20, axis='both', which='major', pad=10, width=2, length=8)
-            # hm.figure.axes[1].tick_params(labelsize=20, width=2, length=6)
-            # hm.collections[0].colorbar.set_label('coupling $J_{ij}$', fontname='Liberation Serif', fontsize=30, labelpad=10)
+            hm = sns.heatmap(self._J, square=True, annot=False, cbar=True)
+            hm.set_ylabel('spin index', fontsize=20, labelpad=10)
+            hm.set_xlabel('spin index', fontsize=20, labelpad=10)
+            hm.tick_params(labelsize=15, axis='both', which='major', pad=10, width=2, length=8)
+            hm.figure.axes[1].tick_params(labelsize=15, width=2, length=6)
+            hm.collections[0].colorbar.set_label('coupling $J_{ij}$', fontsize=20, labelpad=10)
             plt.show()
 
 class IsingModel_2D(IsingModel_1D):
     '''
-    '''
-    def __init__(self, n_spins, random=True, **kwargs):  # magari cambia il nome random + kwargs non sono sicyro sia meglio di mettere scale=1
-        super().__init__(n_spins, random, **kwargs)  # rimettre nearest_neigh as a keyword outside kwargs
-        self.name = '2D_' + self.name[3:]
-        # self._J = self.build_J(random, nearest_neigh, **kwargs)
+    IsingModel_2D(n_spins, random=True, **kwargs)
 
-    # @property
-    # def J(self):
-    #     return self._J 
+    A class for 2D Ising models.
+
+    Initialization parameters
+    -------------------------
+    n_spins : int 
+        Number of spins in the system
+    random : bool
+        If True, couplings J and fields h are randomly sampled from a Gaussian prob distribution
+    **kwargs
+        The additional keyword arguments
+    '''
+    def __init__(self, n_spins, random=True, **kwargs):
+        super().__init__(n_spins, random, **kwargs)  
+        self.name = '2D_' + self.name[3:]
 
     def build_J(self, random, **kwargs):
         '''
+        build_J(random, **kwargs)
+
+        Returns the symmetric spin couplings matrix J.
+
+        Parameters
+        ----------
+        random : bool
+            If True, J entries are randomly sampled from a Gaussian prob distribution
+        **kwargs
+            The additional keyword arguments
+
+        Returns
+        -------
+        J : numpy.array
+            The couplings matrix
         '''
-        def nearest_neigh_coupling(rows, cols, J_value=None, loc=0, scale=1):  # better solution? should I put self in here? NO
-            def generate_J_value(J_value=J_value, loc=loc, scale=scale):  # bette solution
+        def nearest_neigh_coupling(rows, cols, J_value=None, loc=0, scale=1):  
+            def generate_J_value(J_value=J_value, loc=loc, scale=scale): 
                 if J_value is None:
                     return numpy.random.normal(loc=loc, scale=scale, size=None)
                 else:
@@ -791,10 +1079,10 @@ class IsingModel_2D(IsingModel_1D):
                     spin_index = i*cols + j
                     nn_J[spin_index][i*cols + (j+1)%cols] += generate_J_value() if cols>2 else 0
                     nn_J[spin_index][((i+1)%rows)*cols + j] += generate_J_value() if rows>2 else 0
-                    nn_J[spin_index][i*cols + (j-1)%cols] += generate_J_value() # (0-h)%n = n-h
+                    nn_J[spin_index][i*cols + (j-1)%cols] += generate_J_value()
                     nn_J[spin_index][((i-1)%rows)*cols + j] += generate_J_value()
             return nn_J
-        if 'nearest_neigh' in kwargs.keys() and kwargs['nearest_neigh']:  # already symmetric and diagonal=0
+        if 'nearest_neigh' in kwargs.keys() and kwargs['nearest_neigh']: 
             # defining spins grid structure
             if 'spins_grid' in kwargs.keys():
                 rows, cols = kwargs['spins_grid']
@@ -848,8 +1136,6 @@ class IsingModel_2D(IsingModel_1D):
                 self.name += f'_Jval_{round(J_value, 2)}'
         # making J symmetric
         if random:
-            # J =  (J + J.transpose())/numpy.sqrt(2)  # 1/sqrt(2) so that J ~ N(0, Var(J)) after the symmetrization
-            # J = numpy.round(J - numpy.diag(numpy.diag(J)) , decimals=3)
             J_tril = numpy.tril(J, -1)
             J_triu = J_tril.transpose()
             J = J_tril + J_triu
