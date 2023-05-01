@@ -6,7 +6,7 @@ import numpy
 import scipy
 import matplotlib.pyplot as plt
 from q_systems import SpinSystem
-from qmcmc_vqe_classes import *
+from qmcmc_classes import *
 from matplotlib import rcParams
 
 # modifying font  # fontname='Liberation Serif'

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 from tqdm import tqdm
 from q_systems import SpinSystem
-from qmcmc_vqe_classes import *
+from qmcmc_classes import *
 
 # defining useful functions
 def rand_value(low, high):

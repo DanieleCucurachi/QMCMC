@@ -6,7 +6,7 @@ import scipy
 import matplotlib.pyplot as plt
 
 from q_systems import SpinSystem
-from qmcmc_vqe_classes import *
+from qmcmc_classes import *
 
 # defining spin system and setting up qmcmc runner (values from IBM paper)
 n_spins = 6
