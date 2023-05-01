@@ -5,6 +5,7 @@ import numpy
 import matplotlib.pyplot as plt
 
 from q_systems import SpinSystem
+from tqdm import tqdm
 from qmcmc_classes import *
 
 # defining spin system and setting up qmcmc runner (values from IBM paper)
