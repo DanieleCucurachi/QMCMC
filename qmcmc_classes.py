@@ -104,9 +104,7 @@ class Ansatz():
         Parameters
         ----------
         **kwargs
-            The additional keyword arguments 
-            ??????? defining the intervals to consider when uniformly sampling the
-            ansatz's parameters
+            The additional keyword arguments
 
         Returns
         -------
@@ -1021,7 +1019,7 @@ class IsingModel_1D(IsingModel):
         print('------------------------------------------------------------\n\n')
 
         if plot:
-            plt.figure(figsize=(6,5), dpi=100)
+            plt.figure(figsize=(4,3), dpi=100)
             print('Spins coupling heatmap: \n')
             hm = sns.heatmap(self._J, square=True, annot=False, cbar=True)
             hm.set_ylabel('spin index', fontsize=20, labelpad=10)
