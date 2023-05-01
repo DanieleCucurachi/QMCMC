@@ -1,7 +1,8 @@
 
 VERSION = 'V4.8'
 
-import numpy  # mpmath for low T 
+import numpy
+# import mpmath  # for low T 
 import random
 import pandas
 import seaborn as sns
@@ -12,7 +13,7 @@ from scipy.linalg import expm, kron
 from scipy.sparse.linalg import eigs
 
 # defining useful functions
-def data_to_collect(optimizer, max_iteration=15e3, delta_cost_f=1e5):
+def data_to_collect(optimizer, max_iteration=15e3, delta_cost_f=1):
     '''
     data_to_collect(optimizer, max_iteration, delta_cost_f)
 
