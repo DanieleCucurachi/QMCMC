@@ -8,7 +8,7 @@ This repository contains the python implementation of a general optimization app
 
 See ```tutorial.ipynb``` for a usage example.
 
-## REFERENCES
+## References
 
 [1] David Layden et al., “Quantum-enhanced Markov chain Monte Carlo”, AirXiv (2022),
 doi: 10.48550/ARXIV.2203.12497, url: https://arxiv.org/abs/2203.12497
@@ -16,3 +16,4 @@ doi: 10.48550/ARXIV.2203.12497, url: https://arxiv.org/abs/2203.12497
 ## License
 
 The package is licensed under  ```MIT License```
+
