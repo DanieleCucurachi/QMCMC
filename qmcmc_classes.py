@@ -458,7 +458,7 @@ class QMCMC_Optimizer(QMCMC_Runner):
     mc_length : int
         The number of Markov chain steps to perform
     average_over : int
-        # TODO: remove
+        # TODO: remove average_over
     cost_f_choice : string
         Specifies the type of cost function used
     optimization_approach : string
