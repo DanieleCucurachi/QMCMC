@@ -10,8 +10,7 @@ See ```tutorial.ipynb``` for a usage example.
 
 ## References
 
-[1] David Layden et al., “Quantum-enhanced Markov chain Monte Carlo”, AirXiv (2022),
-doi: 10.48550/ARXIV.2203.12497, url: https://arxiv.org/abs/2203.12497
+[1] Layden, D., Mazzola, G., Mishmash, R.V. et al. Quantum-enhanced Markov chain Monte Carlo. Nature 619, 282–287 (2023). https://doi.org/10.1038/s41586-023-06095-4
 
 ## License
 
