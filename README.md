@@ -14,5 +14,5 @@ See ```tutorial.ipynb``` for a usage example.
 
 ## License
 
-The package is licensed under  ```MIT License```
+Licensed under  ```MIT License```
 
